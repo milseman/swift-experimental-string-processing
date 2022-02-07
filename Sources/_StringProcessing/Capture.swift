@@ -19,7 +19,9 @@ enum Capture {
   indirect case some(Capture)
   case none(childType: AnyType)
   indirect case array([Capture], childType: AnyType)
+}
 
+extension Capture {
   static func none(childType: Any.Type) -> Capture {
     .none(childType: AnyType(childType))
   }
