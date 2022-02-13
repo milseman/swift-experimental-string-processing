@@ -103,7 +103,7 @@ extension Capture: CustomStringConvertible {
       }
 
     case let .some(n):
-      printer.printBlock("Tuple") { printer in
+      printer.printBlock("Some") { printer in
         n._print(&printer)
       }
 
