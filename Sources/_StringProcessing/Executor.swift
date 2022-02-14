@@ -29,8 +29,8 @@ public struct Executor {
     ) else {
       return nil
     }
-    let caps = try! structuralize(
-      capList, engine.program.captureStructure, input)
+    let capStruct = engine.program.captureStructure
+    let caps = try! capStruct.structuralize(capList, input)
     return MatchResult(range.lowerBound..<endIdx, caps)
   }
   public func execute(

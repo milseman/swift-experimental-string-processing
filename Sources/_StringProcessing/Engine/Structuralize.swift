@@ -15,52 +15,6 @@ extension StructureKind: CustomStringConvertible {
   }
 }
 
-/*
-
-2 functions
-
-- one is top-level which extracts a capture
-  - array will get a _storedcapture and map over it
-  - optional will check history
-  - atom will pass down latest
-  - tuple will be self-recursion point? for each
-
-- second takes a stored capture and recurses until atom
-  - array will 
-
-
-
-- optional(atom) is weird case
-  - optional(n) is .some(rec(n))
-- array(atom) means use history
-  - array(n), without nested tuples, means extract and pass
-  - array(....tuple(...)), 
-
-
-- array calls `f` to get array of captures
-  - or array asks how many covered captures to extract
-  - 
-
-
-- We record stack on way down  
-- atom will chew on the stack up until a tuple point
-  - `extract` point or whatever
-- tuple will run each child with a fresh stack
-- assert for now no nested tuples
-  - array(tuple(atom, atom)) -> [(firstA, firstB), (...)]
-    - i.e. it's a zip...
-  - array(optional(...)) -> [some, some, none, some]
-    - would it be if range is empty?
-
-- tuple comes down and says zip, if there's an array above it
-  - for now we assert/fail if visit stack is non-empty
-
-
-- intermediary tree?
-  -   
-
-*/
-
 // TODO: How stateful is this, really?
 // TODO: Should we build up a result more mutably?
 private struct Fabricator {
@@ -68,6 +22,9 @@ private struct Fabricator {
   let input: String
 
   var curIdx = 0
+
+  // TODO: We may just need to know whether we're 
+  // history mapping or not...
   var structStack: Array<StructureKind> = []
 
   mutating func next(
@@ -117,6 +74,10 @@ private struct Fabricator {
       return .array(hist, childType: t)
 
     case .optional:
+      // FIXME: We actually need to know if there's any array
+      // above us to know whether to propagate/map-over history
+      // at every step.
+
       if cap.valueHistory.isEmpty {
         return .none(childType: t)
       }
@@ -135,8 +96,6 @@ private struct Fabricator {
 
   mutating func formSlice(
   ) throws -> Capture {
-    //print(self)
-//    print(self.structStack)
     let cap = try next()
 
     switch structStack.last {

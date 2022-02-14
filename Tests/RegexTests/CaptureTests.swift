@@ -91,8 +91,7 @@ func captureTest(
         input: input, in: inputRange, mode: .wholeString
       )!
 
-      let cap = try! structuralize(
-        capFlat, capStructure, input)
+      let cap = try! capStructure.structuralize(capFlat, input)
 
       guard isEqual(cap, output) else {
         XCTFail("""
@@ -228,14 +227,13 @@ extension RegexTests {
       ("b", tuple(some("b"), none, some("b"))),
       skipLegacy: true)
 
-
-
     captureTest(
       "((a)|(b))*",
       .tuple(
         .array(.atom()),
         .array(.optional(.atom())),
         .array(.optional(.atom()))),
+      ("a", tuple(array("a"), array(some("a")), array(none))),
       skipEngine: true,
       skipLegacy: true)
 
@@ -245,6 +243,7 @@ extension RegexTests {
         .array(.atom()),
         .array(.optional(.atom())),
         .array(.optional(.atom()))),
+      // TODO: test cases
       skipEngine: true,
       skipLegacy: true)
 
@@ -255,9 +254,7 @@ extension RegexTests {
         .array(.atom()),
         .array(.optional(.atom())),
         .array(.optional(.atom()))),
-      ("a", tuple("a", array("a"), array(some("a")), noOpt)),
-      ("b", tuple("b", array("b"), noOpt, array(some("b")))),
-      // FIXME: Should above `noneOpt`s be `some(none)`s?
+      // TODO: test cases
       skipEngine: true,
       skipLegacy: true)
 
@@ -269,8 +266,7 @@ extension RegexTests {
         .optional(.atom()),
         .optional(.optional(.atom())),
         .optional(.optional(.atom()))),
-      ("a", tuple("a", some("a"), some("a"), none)),
-      ("b", tuple("b", some("b"), none, some("b"))),
+      // TODO: test cases
       skipEngine: true,
       skipLegacy: true)
 
@@ -301,7 +297,7 @@ extension RegexTests {
         .optional(.array(.optional(.atom()))),
         .optional(.array(.optional(.array(.atom())))),
       ]),
-      ("a", tuple("a", "a", "a")),
+      // TODO: test cases
       skipEngine: true,
       skipLegacy: true)
 
