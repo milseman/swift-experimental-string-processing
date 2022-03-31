@@ -81,6 +81,10 @@ extension RegexComponent {
       input.base, in: input.startIndex..<input.endIndex)
   }
 
+  public func matchWhole(_ s: String) -> Regex<Output>.Match? {
+    _match(s, in: s.startIndex..<s.endIndex)
+  }
+
   func _match(
     _ input: String,
     in inputRange: Range<String.Index>,

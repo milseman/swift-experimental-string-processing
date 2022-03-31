@@ -86,6 +86,7 @@ private func processEntry(_ s: String) -> Transaction? {
   // Account can have spaces, look for 2-or-more for end-of-field
   // ...
   // You know what, let's just bail and call it a day
+  _ = (kind, date)
   return nil
 }
 
@@ -133,7 +134,7 @@ private func processWithRuntimeDynamicRegex(
   _ line: String
 ) -> Transaction? {
   // FIXME: Shouldn't this init throw?
-  let regex = try! Regex(compiling: pattern)
+  let regex = try! Regex(pattern)
 
 //      guard let result = line.match(regex) else { return nil }
 //
@@ -149,10 +150,11 @@ private func processWithRuntimeDynamicRegex(
 
 @available(macOS 12.0, *)
 private func processWithRuntimeStaticRegex(_ line: String) -> Transaction? {
-  let regex: Regex<(Substring, Substring, Substring, Substring, Substring)>
-    = try! Regex(compiling: pattern)
-
-  return process(line, using: regex)
+//  let regex: Regex<(Substring, Substring, Substring, Substring, Substring)>
+//    = try! Regex(pattern)
+//
+//  return process(line, using: regex)
+  fatalError()
 }
 
 @available(macOS 12.0, *)
@@ -171,7 +173,7 @@ private func processWithDSL(_ line: String) -> Transaction? {
 
     Capture {
       OneOrMore {
-        lookahead(fieldSeparator, negative: true)
+        Lookahead(fieldSeparator, negative: true)
         CharacterClass.any
       }
     }
@@ -211,7 +213,7 @@ private func process(
     kind: kind, date: date, account: account, amount: amount)
 }
 
-extension RegexTests {
+extension RegexDSLTests {
 
   @available(macOS 12.0, *)
   func testBankStatement() {
