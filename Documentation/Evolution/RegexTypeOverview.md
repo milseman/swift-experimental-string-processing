@@ -149,11 +149,11 @@ Type mismatches and invalid regex syntax are diagnosed at construction time by `
 When the pattern is known at compile time, regexes can be created from a literal containing the same regex syntax, allowing the compiler to infer the output type. Regex literals enable source tools, e.g. syntax highlighting and actions to refactor into a result builder equivalent.
 
 ```swift
-let regex = re'(\w+)\s\s+(\S+)\s\s+((?:(?!\s\s).)*)\s\s+(.*)'
+let regex = /(\w+)\s\s+(\S+)\s\s+((?:(?!\s\s).)*)\s\s+(.*)/
 // regex: Regex<(Substring, Substring, Substring, Substring, Substring)>
 ```
 
-*Note*: Regex literals, most notably the choice of delimiter, are discussed in [Regex Literals][pitches]. For this example, I used the less technically-problematic option of `re'...'`.
+*Note*: Regex literals, most notably the choice of delimiter, are discussed in [Regex Literals][pitches].
 
 This same regex can be created from a result builder, a refactoring-friendly representation:
 
@@ -193,13 +193,13 @@ A `Regex<Output>.Match` contains the result of a match, surfacing captures by nu
 
 ```swift
 func processEntry(_ line: String) -> Transaction? {
-  let regex = re'''
-    (?x) # Ignore whitespace and comments
+  // Multiline literal inplies `(?x)`, i.e. non-semantic whitespace with line-ending comments
+  let regex = #/
     (?<kind>    \w+)                \s\s+
     (?<date>    \S+)                \s\s+
     (?<account> (?: (?!\s\s) . )+)  \s\s+
     (?<amount>  .*)
-    '''
+  /#
   //  regex: Regex<(
   //    Substring,
   //    kind: Substring,
