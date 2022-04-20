@@ -12,9 +12,7 @@
 // FIXME: macOS CI seems to be busted and Linux doesn't have FormatStyle
 // So, we disable this file for now
 
-#if false
-
-import _MatchingEngine
+import _RegexParser
 
 import XCTest
 import _StringProcessing
@@ -64,11 +62,20 @@ private struct Statement {
 // TODO: Consider adapting into Exercises or benchmark target...
 
 private let statement = """
-CREDIT    03/02/2022    Payroll                   $200.23
+CREDIT    03/02/2022    Payroll from employer     $200.23
 CREDIT    03/03/2022    Sanctioned Individual A   $2,000,000.00
 DEBIT     03/03/2022    Totally Legit Shell Corp  $2,000,000.00
 DEBIT     03/05/2022    Beanie Babies Are Back    $57.33
+DEBIT     06/03/2022    <insert recipient>        £57.33
 """
+
+private let statement2 = """
+DEBIT     06/03/2022    <insert recipient>        £57.33
+"""
+
+// TODO: figure out availability shenanigans that does introduce a
+// _link-time_ OS version dependency error
+#if false
 
 private func processEntry(_ s: String) -> Transaction? {
   var slice = s[...]
@@ -265,3 +272,159 @@ extension RegexDSLTests {
 
 #endif
 
+
+extension RegexDSLTests {
+//
+//  func testFoo() {
+//
+//    let regex = try! Regex(compiling: #"""
+//      (?x)
+//      \w+\s+
+//      (?<date>     \S+)
+//      [^$£]+
+//      (?<currency> [$£])
+//      .*
+//      """#, as: (Substring, date: Substring, currency: Substring).self
+//    )
+//    // TODO: make it possessive-by-default
+//
+//    func pick(_ currency: Substring) -> Date.FormatStyle {
+//      switch currency {
+//      case "$":
+//        return Date.FormatStyle(date: .numeric).parseStrategy
+//      case "£":
+//        return Date.FormatStyle(date: .numeric).parseStrategy
+//      default: fatalError("We found another one!")
+//      }
+//    }
+//    var statement = statement
+//    statement.replace(regex) { match -> String in
+//      print(match)
+//      // TODO: Ugh...
+//      let date = try! Date(String(match.date), strategy: pick(match.currency))
+//      let newDate = "\(date)" // TODO: format it unambiguously
+//
+//      // Crap...
+//      var replacement = String(match.0)
+//      let range = match.date.indices.startIndex ..< match.date.indices.endIndex
+//      replacement.replaceSubrange(range, with: newDate)
+//      return replacement
+//    }
+//
+//  }
+//
+
+  func testFooReplace() {
+    var statement = statement
+
+    func pick(_ currency: Substring) -> Date.FormatStyle {
+      let numericDate = Date.FormatStyle(date: .numeric)
+      switch currency {
+      case "$":
+        return numericDate.locale(Locale(identifier: "en_US"))
+      case "£":
+        return numericDate.locale(Locale(identifier: "en_GB"))
+      default: fatalError("We found another one!")
+      }
+    }
+
+    let regex = try! Regex(compiling: #"""
+      (?x)
+      (?<date>     \d{2} / \d{2} / \d{4})
+      (?<middle>   \P{currencySymbol}+)
+      (?<currency> \p{currencySymbol})
+      """#, as: (Substring, date: Substring, middle: Substring, currency: Substring).self
+    )
+    // Regex<(Substring, date: Substring, middle: Substring, currency: Substring)>
+    statement.replace(regex) { match -> String in
+      let date = try! Date(String(match.date), strategy: pick(match.currency))
+      // ISO 8601, it's the only way to be sure
+      let newDate = date.formatted(.iso8601.year().month().day())
+
+      return newDate + match.middle + match.currency
+    }
+
+
+    print(statement)
+
+    // TODO: next slide make it possessive-by-default
+
+  }
+
+  // TODO: Show using split on a transaction
+  func testFooSplit() {
+    let transaction = statement.split(by: "\n").first!
+
+    let splits = transaction.split(omittingEmptySubsequences: false) {
+      $0.isWhitespace
+    }
+
+    print(splits)
+
+    //    ["CREDIT", "", "", "", "03/02/2022", "", "", "", "Payroll", "from", "employer", "", "", "", "", "$200.23"]
+
+    let regex = try Regex("foo")
+//
+//    transaction.split()
+
+  }
+
+  func testFooRuntime() {
+
+  }
+
+  func testFooIndex() {
+    let transaction = statement.split(by: "\n").first!
+
+    guard var firstFieldEndIdx = transaction.firstIndex(where: \.isWhitespace) else {
+      fatalError("Invalid transaction")
+    }
+
+    switch transaction[firstFieldEndIdx] {
+    // We're at the end
+    case "\t": break
+
+    // Peek ahead one
+    default:
+      let nextIdx = transaction.index(after: firstFieldEndIdx)
+      guard nextIdx != transaction.endIndex, transaction[nextIdx].isWhitespace else {
+        fatalError("FIXME: this isn't the end, need to loop and repeat...")
+      }
+    }
+
+    let transactionKind = transaction[..<firstFieldEndIdx]
+
+    // ...
+
+    fatalError()
+
+  }
+
+  func testHero() {
+/*
+    guard #available(macOS 12.0, *) else { return }
+
+    Regex {
+      let fieldSeparator = /\s{2,}|\t/
+      Capture { /CREDIT|DEBIT/ }
+      fieldSeparator
+
+      Capture { Date.FormatStyle(date: .numeric).parseStrategy }
+      fieldSeparator
+
+      Capture {
+        OneOrMore {
+          Lookahead(negative: true) { fieldSeparator }
+          CharacterClass.any
+        }
+      }
+      fieldSeparator
+
+      Capture { Decimal.FormatStyle.Currency(code: "USD") }
+    }
+    // Regex<(Substring, Substring, Date, Substring, Decimal)>
+
+*/
+  }
+
+}
