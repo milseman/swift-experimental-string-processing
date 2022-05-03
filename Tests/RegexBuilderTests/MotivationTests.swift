@@ -480,7 +480,7 @@ extension RegexDSLTests {
 
     // ...
 
-    fatalError()
+//    fatalError()
 
   }
 

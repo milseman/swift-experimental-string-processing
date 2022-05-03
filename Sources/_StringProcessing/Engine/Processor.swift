@@ -71,9 +71,18 @@ extension Processor {
       backtrackRestore += 1
     }
   }
+
   var cycleCount: Int { metrics.cycleCount }
 }
 
+extension Processor.Metrics: CustomStringConvertible {
+  var description: String {
+    """
+    cycles:     \(cycleCount)
+    backtracks: \(backtrackRestore)
+    """
+  }
+}
 
 extension Processor {
   typealias Position = Input.Index
