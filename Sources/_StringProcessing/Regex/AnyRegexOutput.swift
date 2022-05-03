@@ -222,8 +222,8 @@ extension Regex where Output == AnyRegexOutput {
   ///
   /// Use this initializer to fit a regex with strongly typed captures into the
   /// use site of a dynamic regex, i.e. one that was created from a string.
-  public init<Output>(_ match: Regex<Output>) {
-    fatalError("FIXME: Not implemented")
+  public init<Output>(_ regex: Regex<Output>) {
+    self.init(node: regex.root)
   }
 
   /// Returns a typed regex by converting the underlying types.

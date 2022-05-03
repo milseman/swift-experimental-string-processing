@@ -26,7 +26,7 @@ import RegexBuilder
 
 // FIXME: macOS CI seems to be busted and Linux doesn't have FormatStyle
 // So, we disable this larger test for now.
-#if false
+//#if false
 
 private struct Transaction: Hashable {
   enum Kind: Hashable {
@@ -386,7 +386,7 @@ extension RegexDSLTests {
 
     let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
 
-    print(transaction.split(by: fieldSeparator))//.joined(separator: "\t"))
+    print(transaction.split(separator: fieldSeparator))//.joined(separator: "\t"))
     print(transaction.replacing(fieldSeparator, with: "\t"))
 
   }
@@ -420,7 +420,7 @@ extension RegexDSLTests {
     print("--")
 
     for line in statement.split(whereSeparator: { $0.isNewline }) {
-      if let m = Array(line.split(by: fieldSeparator))[2].firstMatch(of: inputRegex) {
+      if let m = Array(line.split(separator: fieldSeparator))[2].firstMatch(of: inputRegex) {
         print(line)
       }
       if let m = line.firstMatch(of: inputRegex) {
@@ -458,7 +458,7 @@ extension RegexDSLTests {
   }
 
   func testFooIndex() {
-    let transaction = statement.split(by: "\n").first!
+    let transaction = statement.split(separator: "\n").first!
 
     guard var firstFieldEndIdx = transaction.firstIndex(where: \.isWhitespace) else {
       fatalError("Invalid transaction")
@@ -543,3 +543,4 @@ extension RegexDSLTests {
   }
 
 }
+
