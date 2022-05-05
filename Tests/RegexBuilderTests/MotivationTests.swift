@@ -323,140 +323,6 @@ extension RegexDSLTests {
 //  }
 //
 
-  func testFooReplace() {
-    var statement = statement
-
-    func pick(_ currency: Substring) -> Locale {
-      switch currency {
-      case "$": return Locale(identifier: "en_US")
-      case "£": return Locale(identifier: "en_GB")
-      default: fatalError("We found another one!")
-      }
-    }
-
-    let regex = try! Regex(#"""
-      (?x)
-      (?<date>     \d{2} / \d{2} / \d{4})
-      (?<middle>   \P{currencySymbol}+)
-      (?<currency> \p{currencySymbol})
-      """#, as: (Substring, date: Substring, middle: Substring, currency: Substring).self
-    )
-    // Regex<(Substring, date: Substring, middle: Substring, currency: Substring)>
-
-    statement.replace(regex) { match -> String in
-      let strategy = Date.FormatStyle(date: .numeric).locale(pick(match.currency))
-      let date = try! Date(String(match.date), strategy: strategy)
-      // ISO 8601, it's the only way to be sure
-      let newDate = date.formatted(.iso8601.year().month().day())
-
-      return newDate + match.middle + match.currency
-    }
-
-
-    print(statement)
-
-    // TODO: next slide make it possessive-by-default
-
-  }
-
-  // TODO: Show using split on a transaction
-  func testFooSplit() {
-    let transaction = "DEBIT     03/05/2022    Beanie Babies Are Back    $57.33"
-
-    let fragments = transaction.split { $0.isWhitespace }
-    // ["DEBIT", "03/05/2022", "Beanie", "Babies", "Are", "Back", "$57.33"]
-
-    let individual = fragments[2...].dropLast().joined(separator: " ")
-
-    // ... hard-coded access to rest of the fields ...
-
-    transaction.split(omittingEmptySubsequences: false) { $0.isWhitespace }
-    // ["DEBIT", "", "", "", "", "03/05/2022", "", "", "", "Beanie", "Babies", "Are", "Back", "", "", "", "$57.33"]
-
-
-    print(individual)
-
-    //    ["CREDIT", "", "", "", "03/02/2022", "", "", "", "Payroll", "from", "employer", "", "", "", "", "$200.23"]
-
-//    let regex = try Regex("foo")
-//
-//    transaction.split()
-
-//    let transaction = "DEBIT     03/05/2022    Beanie Babies Are Back    $57.33"
-
-    let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
-
-    print(transaction.split(separator: fieldSeparator))//.joined(separator: "\t"))
-    print(transaction.replacing(fieldSeparator, with: "\t"))
-
-  }
-
-  func testFooRuntime() throws {
-    for line in statement.split(whereSeparator: { $0.isNewline }) {
-      print(line)
-    }
-
-    let commandLineInput = "A"
-
-    let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
-
-    let inputRegex = try! Regex(commandLineInput)
-    let regex = Regex {
-      Repeat(count: 2) {
-        try! Regex(".*?")
-        fieldSeparator
-      }
-      inputRegex
-      try! Regex(".*")
-    }
-
-    print("-")
-    for line in statement.split(whereSeparator: { $0.isNewline }) {
-      if let m = try regex.wholeMatch(in: line) {
-        print(m.0)
-      }
-    }
-
-    print("--")
-
-    for line in statement.split(whereSeparator: { $0.isNewline }) {
-      if let m = Array(line.split(separator: fieldSeparator))[2].firstMatch(of: inputRegex) {
-        print(line)
-      }
-      if let m = line.firstMatch(of: inputRegex) {
-        print(line)
-      }
-    }
-
-
-  }
-
-  func testFooRuntime2() throws {
-    let commandLineInput = "A"
-
-    let inputRegex = try Regex(commandLineInput)
-    // Regex<AnyRegexOutput>
-
-    let specificRegex: Regex<(Substring, Substring)> = try Regex(commandLineInput)
-  }
-
-  func testFooUnicode() {
-
-    let aZombieLoveStory = "🧟‍♀️💖🧠"
-
-    let regex = try! Regex(#"""
-      (?x)
-      \y (?<base> .) (?: \N{ZERO WIDTH JOINER} (?<modifier> .) .*?)? \y
-      """#, as: (Substring, base: Substring, modifier: Substring?).self
-    ).matchingSemantics(.unicodeScalar)
-    // Regex<(Substring, base: Substring, modifier: Substring?)>
-
-    for match in aZombieLoveStory.matches(of: regex) {
-      print(match.0, match.base.unicodeScalars.first!.value.hexStr, match.modifier?.unicodeScalars.first!.value.hexStr)
-    }
-
-  }
-
   func testFooIndex() {
     let transaction = statement.split(separator: "\n").first!
 
@@ -484,63 +350,41 @@ extension RegexDSLTests {
 
   }
 
-  func testHero() {
-/*
-    guard #available(macOS 12.0, *) else { return }
 
-    Regex {
-      let fieldSeparator = /\s{2,}|\t/
-      Capture { /CREDIT|DEBIT/ }
-      fieldSeparator
-
-      Capture { Date.FormatStyle(date: .numeric).parseStrategy }
-      fieldSeparator
-
-      Capture {
-        OneOrMore {
-          Lookahead(negative: true) { fieldSeparator }
-          CharacterClass.any
-        }
-      }
-      fieldSeparator
-
-      Capture { Decimal.FormatStyle.Currency(code: "USD") }
-    }
-    // Regex<(Substring, Substring, Date, Substring, Decimal)>
-
-*/
-
-    let regex = Regex {
-      let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
-      Capture { try! Regex("CREDIT|DEBIT") }
-      fieldSeparator
-
-      Capture {
-        try! Regex("[0-9/]")
-      }
-      fieldSeparator
-
-      Capture {
-        OneOrMore {
-          Lookahead(negative: true) { "  " }
-          CharacterClass.any
-        }
-      }
-      fieldSeparator
-
-      Capture { OneOrMore(CharacterClass.any) }
-    }
-
-    // FIXME: doesn't work!
-    for match in statement.matches(of: regex) {
-      print(match.0, match.1, match.2, match.3, match.4)
-    }
-
-  }
-
-  func testNewAlgos() {
-    
-  }
 
 }
 
+
+/*
+
+let transaction = "DEBIT     03/05/2022    Doug's Dugout Dogs         $33.27"
+
+let fragments = transaction.split { $0.isWhitespace }
+
+let individual = fragments[2...].dropLast().joined(separator: " ")
+
+let dotHeartdot = try! Regex(#".\N{SPARKLING HEART}."#)
+let anyCafe = try! Regex(#".*café"#).ignoresCase()
+
+switch ("🧟‍♀️💖🧠", "The Brain Cafe\u{301}") {
+case (dotHeartdot, anyCafe):
+  print("Oh no! 🧟‍♀️💖🧠, but 🧠💖☕️!")
+default:
+  print("No conflicts found")
+}
+
+let regex = /\y(?<base>.)(?:\N{ZERO WIDTH JOINER}(?<modifier>.).*?)?\y/
+// Regex<(Substring, base: Substring, modifier: Substring?)>
+
+ for match in "🧟‍♀️💖🧠".matches(of: regex.matchingSemantics(.unicodeScalar)) {
+   print("\(match.0) => \(match.base) | \(match.modifier ?? "<none>")")
+ }
+
+// 🧟‍♀️ => 🧟 | ♀
+// 💖 => 💖 | <none>
+// 🧠 => 🧠 | <none>
+
+ //
+
+
+*/

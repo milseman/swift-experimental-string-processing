@@ -34,20 +34,28 @@ extension Regex {
 
 @available(SwiftStdlib 5.7, *)
 extension Regex.Match {
+
+  private var _existentialOutput: AnyRegexOutput {
+    let wholeMatchAsCapture = StructuredCapture(
+      optionalCount: 0,
+      storedCapture: StoredCapture(range: range, value: nil))
+    let output = AnyRegexOutput(
+      input: input,
+      namedCaptureOffsets: namedCaptureOffsets,
+      elements: [wholeMatchAsCapture] + rawCaptures)
+    return output
+  }
+
   /// The output produced from the match operation.
   public var output: Output {
     if Output.self == AnyRegexOutput.self {
-      let wholeMatchAsCapture = StructuredCapture(
-        optionalCount: 0,
-        storedCapture: StoredCapture(range: range, value: nil))
-      let output = AnyRegexOutput(
-        input: input,
-        namedCaptureOffsets: namedCaptureOffsets,
-        elements: [wholeMatchAsCapture] + rawCaptures)
-      return output as! Output
+      return _existentialOutput as! Output
     } else if Output.self == Substring.self {
       // FIXME: Plumb whole match (`.0`) through the matching engine.
       return input[range] as! Output
+    } else if Output.self == (Substring, AnyRegexOutput).self {
+      // FIXME: A scalable solution?
+      return (input[range], _existentialOutput) as! Output
     } else if rawCaptures.isEmpty, value != nil {
       // FIXME: This is a workaround for whole-match values not
       // being modeled as part of captures. We might want to
