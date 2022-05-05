@@ -51,7 +51,6 @@ extension Regex.Match {
     if Output.self == AnyRegexOutput.self {
       return _existentialOutput as! Output
     } else if Output.self == Substring.self {
-      // FIXME: Plumb whole match (`.0`) through the matching engine.
       return input[range] as! Output
     } else if Output.self == (Substring, AnyRegexOutput).self {
       // FIXME: A scalable solution?

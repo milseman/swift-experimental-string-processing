@@ -102,10 +102,46 @@ extension RegexDSLTests {
 
   }
 
+  func testFooReplace2() {
+    var statement = statement
+
+    func pick(_ currency: Substring) -> Locale {
+      switch currency {
+      case "$": return Locale(identifier: "en_US")
+      case "£": return Locale(identifier: "en_GB")
+      default: fatalError("We found another one!")
+      }
+    }
+
+    let regex = try! Regex(#"""
+      (?x)
+      (?<date>     \d{2} / \d{2} / \d{4})
+      (?<middle>   \P{currencySymbol}+)
+      (?<currency> \p{currencySymbol})
+      """#, as: (Substring, date: Substring, middle: Substring, currency: Substring).self
+    )
+    // Regex<(Substring, date: Substring, middle: Substring, currency: Substring)>
+
+    statement.replace(regex) { match -> String in
+      let strategy = Date.FormatStyle(date: .numeric).locale(pick(match.currency))
+      let date = try! Date(String(match.date), strategy: strategy)
+      // ISO 8601, it's the only way to be sure
+      let newDate = date.formatted(.iso8601.year().month().day())
+
+      return newDate + match.middle + match.currency
+    }
+
+
+    print(statement)
+
+    // TODO: next slide make it possessive-by-default
+
+  }
+
   func testFooSplit() {
     let transaction = "DEBIT     03/05/2022    Doug's Dugout Dogs         $33.27"
 
-    let fragments = transaction.split { $0.isWhitespace }
+    let fragments = transaction.split(whereSeparator: \.isWhitespace)
     // ["DEBIT", "03/05/2022", "Beanie", "Babies", "Are", "Back", "$57.33"]
 
 
@@ -132,6 +168,11 @@ extension RegexDSLTests {
     let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
 
     print(transaction.split(separator: fieldSeparator))//.joined(separator: "\t"))
+
+    print("join")
+    print(transaction.split(separator: fieldSeparator).joined(separator: "\t"))
+
+    print("replacing")
     print(transaction.replacing(fieldSeparator, with: "\t"))
 
   }
@@ -285,23 +326,43 @@ extension RegexDSLTests {
   }
 
   func testRuntimeComponent() throws {
-    let userString = #"CREDIT|DEBIT|.*?"#
+    let userString = #"CREDIT|DEBIT|.*"#
     let transferRegex = try Regex(userString)
-    let regex = Regex {
-      let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
-      Capture { transferRegex }
-      fieldSeparator
+    do {
+      let regex = Regex {
+        let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
+        Capture { transferRegex }
+        fieldSeparator
 
-      // ...
+        // ...
+      }
+      // let regex: Regex<(Substring, AnyRegexOutput)>
+
+      print(try regex.wholeMatch(in: "CREDIT  ")!.1)
+
+
+      print(try regex.wholeMatch(in: "CREDIT  ")!.0)
+      print(try regex.wholeMatch(in: "DEBIT  ")!.0)
+      print(try regex.wholeMatch(in: "DEBITasfd  ")!.0)
     }
-    // let regex: Regex<(Substring, AnyRegexOutput)>
+    do {
+      let regex = Regex {
+        let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
+        Capture { Local { transferRegex } }
+        fieldSeparator
 
-    print(try regex.wholeMatch(in: "CREDIT  ")!.1)
+        // ...
+      }
+      // let regex: Regex<(Substring, Substring)>
 
+      print(try regex.wholeMatch(in: "CREDIT  ")!.1)
 
-    print(try regex.wholeMatch(in: "CREDIT  ")!.0)
-    print(try regex.wholeMatch(in: "DEBIT  ")!.0)
-    print(try regex.wholeMatch(in: "DEBITasfd  ")!.0)
+      // FIXME: Bug in local here, it seems to backtrack to .*
+
+      print(try regex.wholeMatch(in: "CREDIT  ")!.0)
+      print(try regex.wholeMatch(in: "DEBIT  ")!.0)
+      print(try regex.wholeMatch(in: "DEBITasfd  ")!.0)
+    }
   }
 
 }
