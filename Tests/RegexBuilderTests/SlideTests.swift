@@ -14,6 +14,7 @@ DEBIT     03/05/2022    Doug's Dugout Dogs         $33.27
 """
 
 private let extraStatement = statement + """
+
 DEBIT     06/03/2022    Oxford Comma Supply Ltd.   £57.33
 """
 
@@ -67,7 +68,7 @@ extension RegexDSLTests {
   }
 
   func testFooReplace() {
-    var statement = statement
+    var statement = extraStatement
 
     func pick(_ currency: Substring) -> Locale {
       switch currency {
@@ -103,12 +104,14 @@ extension RegexDSLTests {
   }
 
   func testFooReplace2() {
-    var statement = statement
+    var statement = extraStatement
 
-    func pick(_ currency: Substring) -> Locale {
+    func pickStrategy(_ currency: Substring) -> Date.FormatStyle {
       switch currency {
-      case "$": return Locale(identifier: "en_US")
-      case "£": return Locale(identifier: "en_GB")
+      case "$":
+        return Date.FormatStyle(date: .numeric).locale(Locale(identifier: "en_US"))
+      case "£":
+        return Date.FormatStyle(date: .numeric).locale(Locale(identifier: "en_GB"))
       default: fatalError("We found another one!")
       }
     }
@@ -123,8 +126,7 @@ extension RegexDSLTests {
     // Regex<(Substring, date: Substring, middle: Substring, currency: Substring)>
 
     statement.replace(regex) { match -> String in
-      let strategy = Date.FormatStyle(date: .numeric).locale(pick(match.currency))
-      let date = try! Date(String(match.date), strategy: strategy)
+      let date = try! Date(String(match.date), strategy: pickStrategy(match.currency))
       // ISO 8601, it's the only way to be sure
       let newDate = date.formatted(.iso8601.year().month().day())
 
