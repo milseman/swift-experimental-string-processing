@@ -1607,6 +1607,29 @@ extension RegexTests {
       ("e\u{301}ab", true),
       ("e\u{301}\na", true))
   }
+
+  func testNLA() {
+//    matchTest(
+//      "a(?!b)c",
+//      ("ac", true),
+//      ("ab", false)
+//    )
+//
+//    matchTest(
+//      "a(?!bb)b.",
+//      ("abc", true),
+//      ("abb", false)
+//    )
+
+    matchTest(
+      "a(?!b|c).",
+//      ("aa", true),
+      ("ab", false) // FIXME: debug
+      )
+//    ,
+//      ("ac", false)
+//    )
+  }
   
   // TODO: Add test for implied grapheme cluster requirement at group boundaries
   
