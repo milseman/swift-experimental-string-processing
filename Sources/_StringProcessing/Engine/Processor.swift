@@ -39,7 +39,7 @@ struct Processor<
   let instructions: InstructionList<Instruction>
   var controller: Controller
 
-  var cycleCount = 0
+  var metrics = Metrics()
 
   /// Our register file
   var registers: Registers
@@ -56,6 +56,32 @@ struct Processor<
   var isTracingEnabled: Bool
 
   var storedCaptures: Array<_StoredCapture>
+}
+
+extension Processor {
+  struct Metrics {
+    var cycleCount = 0
+    var backtrackRestore = 0
+
+    mutating func cycle() {
+      cycleCount += 1
+    }
+
+    mutating func restore() {
+      backtrackRestore += 1
+    }
+  }
+
+  var cycleCount: Int { metrics.cycleCount }
+}
+
+extension Processor.Metrics: CustomStringConvertible {
+  var description: String {
+    """
+    cycles:     \(cycleCount)
+    backtracks: \(backtrackRestore)
+    """
+  }
 }
 
 extension Processor {
@@ -176,6 +202,8 @@ extension Processor {
     assert(stackEnd.rawValue <= callStack.count)
     assert(capEnds.count == storedCaptures.count)
 
+    metrics.restore()
+
     controller.pc = pc
     currentPosition = pos ?? currentPosition
     callStack.removeLast(callStack.count - stackEnd.rawValue)
@@ -207,9 +235,9 @@ extension Processor {
   mutating func cycle() {
     _checkInvariants()
     assert(state == .inProgress)
-    if cycleCount == 0 { trace() }
+    if metrics.cycleCount == 0 { trace() }
     defer {
-      cycleCount += 1
+      metrics.cycle()
       trace()
       _checkInvariants()
     }
