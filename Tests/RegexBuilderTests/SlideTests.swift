@@ -5,6 +5,22 @@ import XCTest
 import _StringProcessing
 import RegexBuilder
 
+extension Locale {
+  public static var enUS: Self { .init(identifier: "en_US") }
+  public static var enGB: Self { .init(identifier: "en_GB") }
+}
+extension TimeZone {
+  public static var gmt: Self { .init(secondsFromGMT: 0)! }
+}
+extension Date.FormatStyle {
+  public static func date(
+    _ style: DateStyle,
+    locale: Locale,
+    timeZone: TimeZone
+  ) -> Self {
+    Self(date: .numeric, locale: locale, timeZone: timeZone)
+  }
+}
 
 private let statement = """
 CREDIT    03/02/2022    Payroll from employer      $200.23
@@ -102,6 +118,42 @@ extension RegexDSLTests {
     // TODO: next slide make it possessive-by-default
 
   }
+
+  func testFooReplace2() {
+    var statement = extraStatement
+
+    func pick(_ currency: Substring) -> Locale {
+      switch currency {
+      case "$": return Locale(identifier: "en_US")
+      case "£": return Locale(identifier: "en_GB")
+      default: fatalError("We found another one!")
+      }
+    }
+
+    let regex = try! Regex(#"""
+      (?x)
+      (?<date>     \d{2} / \d{2} / \d{4})
+      (?<middle>   \P{currencySymbol}+)
+      (?<currency> \p{currencySymbol})
+      """#, as: (Substring, date: Substring, middle: Substring, currency: Substring).self
+    )
+    // Regex<(Substring, date: Substring, middle: Substring, currency: Substring)>
+
+    statement.replace(regex) { match -> String in
+      let strategy = Date.FormatStyle(date: .numeric).locale(pick(match.currency))
+      let date = try! Date(String(match.date), strategy: strategy)
+      // ISO 8601, it's the only way to be sure
+      let newDate = date.formatted(.iso8601.year().month().day())
+
+      return newDate + match.middle + match.currency
+    }
+
+
+    print(statement)
+
+    // TODO: next slide make it possessive-by-default
+
+  }
 //
 //  func testUse() {
 //
@@ -130,7 +182,7 @@ extension RegexDSLTests {
 //    }
 //  }
 
-  func testFooReplace2() {
+  func testFooReplace3() {
     var statement = extraStatement
 
     func pickStrategy(_ currency: Substring) -> Date.FormatStyle {
@@ -166,6 +218,43 @@ extension RegexDSLTests {
     // TODO: next slide make it possessive-by-default
 
   }
+
+
+  func testFooReplace4() {
+    var statement = extraStatement
+
+    func pickStrategy(_ currency: Substring) -> Date.FormatStyle {
+      switch currency {
+      case "$": return .date(.numeric, locale: .enUS, timeZone: .gmt)
+      case "£": return .date(.numeric, locale: .enGB, timeZone: .gmt)
+      default: fatalError("We found another one!")
+      }
+    }
+
+    let regex = try! Regex(#"""
+      (?x)
+      (?<date>     \d{2} / \d{2} / \d{4})
+      (?<middle>   \P{currencySymbol}+)
+      (?<currency> \p{currencySymbol})
+      """#, as: (Substring, date: Substring, middle: Substring, currency: Substring).self
+    )
+    // Regex<(Substring, date: Substring, middle: Substring, currency: Substring)>
+
+    statement.replace(regex) { match -> String in
+      let date = try! Date(String(match.date), strategy: pickStrategy(match.currency))
+      // ISO 8601, it's the only way to be sure
+      let newDate = date.formatted(.iso8601.year().month().day())
+
+      return newDate + match.middle + match.currency
+    }
+
+
+    print(statement)
+
+    // TODO: next slide make it possessive-by-default
+
+  }
+
 
   func testFooSplit() {
     let transaction = "DEBIT     03/05/2022    Doug's Dugout Dogs         $33.27"
@@ -300,13 +389,11 @@ extension RegexDSLTests {
   }
 
   func testFooUnicode2() {
-    let dotHeartdot = try! Regex(#".\N{SPARKLING HEART}."#)
     let anyCafe = try! Regex(#".*café"#).ignoresCase()
 
-    _ = ("🧟‍♀️💖🧠", "The Brain CafE\u{301}")
 
+    let dotHeartdot = try! Regex(#".\N{SPARKLING HEART}."#)
     let input = "Oh no! 🧟‍♀️💖🧠, but 🧠💖☕️!"
-
     for match in input.matches(of: dotHeartdot) {
       print(match.0)
     }
@@ -318,9 +405,26 @@ extension RegexDSLTests {
     for match in input.matches(of: dotHeartdot.matchingSemantics(.unicodeScalar)) {
       print(match.0)
     }
+    // 🧠💖☕️
 
 
   }
+
+  func testDotCharClass() {
+
+    let regex = try! Regex(#"[\d.]+"#)
+
+    switch "123.45" {
+    case regex: print("matches")
+    default: print("fails")
+    }
+
+    print("  abc".trimmingPrefix(.whitespace))
+    print(" abc".trimmingPrefix(.whitespace))
+    print("abc".trimmingPrefix(.whitespace))
+
+  }
+
 
 
   func testU() {
@@ -336,162 +440,162 @@ extension RegexDSLTests {
 //    }
 
   }
-
-  func testSwiftyTransaction() {
-
-    let transactionForm = """
-    HEADER              TIMESTAMP      AMOUNT  ROUTING HISTORY   TRAILIER
-    --------------------------------------------------------------------
-    FE>>nn<<WWDC^zz...    <proprietary>    123456    a>ggg=bic%2022    ...
-    """
-
-    let transaction = transactionForm.split(separator: "\n").last!
-    print("Transaction: \(transaction)")
-
-
-    let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
-//    let fieldSeparator = Local { try! Regex(#"\s{2,}|\t"#) }
-
-    let field = OneOrMore {
-      Lookahead(negative: true) { fieldSeparator }
-      CharacterClass.any
-    }
-
-    let transactionMatcher = Regex {
-      Capture(field)
-      fieldSeparator
-
-//      Capture(field)
-//      fieldSeparator
-
+//
+//  func testSwiftyTransaction() {
+//
+//    let transactionForm = """
+//    HEADER              TIMESTAMP      AMOUNT  ROUTING HISTORY   TRAILIER
+//    --------------------------------------------------------------------
+//    FE>>nn<<WWDC^zz...    <proprietary>    123456    a>ggg=bic%2022    ...
+//    """
+//
+//    let transaction = transactionForm.split(separator: "\n").last!
+//    print("Transaction: \(transaction)")
+//
+//
+//    let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
+////    let fieldSeparator = Local { try! Regex(#"\s{2,}|\t"#) }
+//
+//    let field = OneOrMore {
+//      Lookahead(negative: true) { fieldSeparator }
+//      CharacterClass.any
+//    }
+//
+//    let transactionMatcher = Regex {
 //      Capture(field)
 //      fieldSeparator
 //
-//      Capture(field)
+////      Capture(field)
+////      fieldSeparator
+//
+////      Capture(field)
+////      fieldSeparator
+////
+////      Capture(field)
+////      fieldSeparator
+////
+////      Capture(field)
+////      fieldSeparator
+//    }
+//
+//    let m = transaction.prefixMatch(of: transactionMatcher)!
+//
+//    print(m.0)
+//    print(m.1)
+////    print(m.2)
+//
+//  }
+
+//
+//  func testNestedFoo() {
+//
+//    let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
+//    let fieldSeparator2 = Local { try! Regex(#"\s{2,}|\t"#) }
+//
+//    let field = OneOrMore {
+//      Lookahead(negative: true) { fieldSeparator }
+//      CharacterClass.any
+//    }
+//
+//    let regexA = "CREDIT"
+//    let regexB = "DEBIT"
+//    let regexZ = "OTHER"
+//
+//    let transactionKind = ChoiceOf {
+//      regexA
+//      regexB
+//      // ...
+//      regexZ
+//    }
+//
+//
+//    let transaction = Regex {
+//      TryCapture(field) { $0.wholeMatch(of: transactionKind)?.0 }
+//
+//      Capture { try! Regex(".*?") } // { Date.FormatStyle(date: .numeric).parseStrategy }
 //      fieldSeparator
 //
-//      Capture(field)
+//      Capture { field }
 //      fieldSeparator
-    }
-
-    let m = transaction.prefixMatch(of: transactionMatcher)!
-
-    print(m.0)
-    print(m.1)
-//    print(m.2)
-
-  }
-
-
-  func testNestedFoo() {
-
-    let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
-    let fieldSeparator2 = Local { try! Regex(#"\s{2,}|\t"#) }
-
-    let field = OneOrMore {
-      Lookahead(negative: true) { fieldSeparator }
-      CharacterClass.any
-    }
-
-    let regexA = "CREDIT"
-    let regexB = "DEBIT"
-    let regexZ = "OTHER"
-
-    let transactionKind = ChoiceOf {
-      regexA
-      regexB
-      // ...
-      regexZ
-    }
-
-
-    let transaction = Regex {
-      TryCapture(field) { $0.wholeMatch(of: transactionKind)?.0 }
-
-      Capture { try! Regex(".*?") } // { Date.FormatStyle(date: .numeric).parseStrategy }
-      fieldSeparator
-
-      Capture { field }
-      fieldSeparator
-
-      Capture { try! Regex(".*?") } // { Decimal.FormatStyle.Currency(code: "USD") }
-    }
-
-    let transaction2 = Regex {
-      TryCapture { field } transform: {
-        $0.wholeMatch(of: transactionKind)?.0
-      }
-
-      TryCapture(field) { transactionKind ~= $0 ? $0 : nil }
-
-
-      Capture { try! Regex(".*?") } // { Date.FormatStyle(date: .numeric).parseStrategy }
-      fieldSeparator
-
-      Capture { field }
-      fieldSeparator
-
-      Capture { try! Regex(".*?") } // { Decimal.FormatStyle.Currency(code: "USD") }
-    }
-
-    print("done")
-
-  }
-
-  func testHero() {
-/*
-    guard #available(macOS 12.0, *) else { return }
-
-    Regex {
-      let fieldSeparator = /\s{2,}|\t/
-      Capture { /CREDIT|DEBIT/ }
-      fieldSeparator
-
-      Capture { Date.FormatStyle(date: .numeric).parseStrategy }
-      fieldSeparator
-
-      Capture {
-        OneOrMore {
-          Lookahead(negative: true) { fieldSeparator }
-          CharacterClass.any
-        }
-      }
-      fieldSeparator
-
-      Capture { Decimal.FormatStyle.Currency(code: "USD") }
-    }
-    // Regex<(Substring, Substring, Date, Substring, Decimal)>
-
-*/
-
-
-    let regex = Regex {
-      let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
-      Capture { try! Regex("CREDIT|DEBIT") }
-      fieldSeparator
-
-      Capture {
-        try! Regex("[0-9/]")
-      }
-      fieldSeparator
-
-      Capture {
-        OneOrMore {
-          Lookahead(negative: true) { "  " }
-          CharacterClass.any
-        }
-      }
-      fieldSeparator
-
-      Capture { OneOrMore(CharacterClass.any) }
-    }
-
-    // FIXME: doesn't work!
-    for match in statement.matches(of: regex) {
-      print(match.0, match.1, match.2, match.3, match.4)
-    }
-
-  }
+//
+//      Capture { try! Regex(".*?") } // { Decimal.FormatStyle.Currency(code: "USD") }
+//    }
+//
+//    let transaction2 = Regex {
+//      TryCapture { field } transform: {
+//        $0.wholeMatch(of: transactionKind)?.0
+//      }
+//
+//      TryCapture(field) { transactionKind ~= $0 ? $0 : nil }
+//
+//
+//      Capture { try! Regex(".*?") } // { Date.FormatStyle(date: .numeric).parseStrategy }
+//      fieldSeparator
+//
+//      Capture { field }
+//      fieldSeparator
+//
+//      Capture { try! Regex(".*?") } // { Decimal.FormatStyle.Currency(code: "USD") }
+//    }
+//
+//    print("done")
+//
+//  }
+//
+//  func testHero() {
+///*
+//    guard #available(macOS 12.0, *) else { return }
+//
+//    Regex {
+//      let fieldSeparator = /\s{2,}|\t/
+//      Capture { /CREDIT|DEBIT/ }
+//      fieldSeparator
+//
+//      Capture { Date.FormatStyle(date: .numeric).parseStrategy }
+//      fieldSeparator
+//
+//      Capture {
+//        OneOrMore {
+//          Lookahead(negative: true) { fieldSeparator }
+//          CharacterClass.any
+//        }
+//      }
+//      fieldSeparator
+//
+//      Capture { Decimal.FormatStyle.Currency(code: "USD") }
+//    }
+//    // Regex<(Substring, Substring, Date, Substring, Decimal)>
+//
+//*/
+//
+//
+//    let regex = Regex {
+//      let fieldSeparator = try! Regex(#"\s{2,}|\t"#)
+//      Capture { try! Regex("CREDIT|DEBIT") }
+//      fieldSeparator
+//
+//      Capture {
+//        try! Regex("[0-9/]")
+//      }
+//      fieldSeparator
+//
+//      Capture {
+//        OneOrMore {
+//          Lookahead(negative: true) { "  " }
+//          CharacterClass.any
+//        }
+//      }
+//      fieldSeparator
+//
+//      Capture { OneOrMore(CharacterClass.any) }
+//    }
+//
+//    // FIXME: doesn't work!
+//    for match in statement.matches(of: regex) {
+//      print(match.0, match.1, match.2, match.3, match.4)
+//    }
+//
+//  }
 
   func testRuntimeComponent() throws {
     let userString = #"CREDIT|DEBIT|.*"#

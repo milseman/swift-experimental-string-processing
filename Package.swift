@@ -33,8 +33,8 @@ let package = Package(
             name: "_StringProcessing",
             targets: ["_StringProcessing"]),
         .library(
-            name: "Prototypes",
-            targets: ["Prototypes"]),
+            name: "RegexBuilder",
+            targets: ["RegexBuilder"]),
         .library(
             name: "_RegexParser",
             targets: ["_RegexParser"]),
