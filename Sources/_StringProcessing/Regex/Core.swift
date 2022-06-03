@@ -81,7 +81,7 @@ extension Regex {
     let tree: DSLTree
 
     /// The program for execution with the matching engine.
-    lazy private(set) var loweredProgram = try! Compiler(tree: tree).emit()
+    lazy private(set) var loweredProgram = try! Compiler.compile(tree)
 
     init(ast: AST) {
       self.tree = ast.dslTree

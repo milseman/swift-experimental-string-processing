@@ -144,8 +144,7 @@ extension StringCapture {
 // TODO: Move `flatCaptureTest`s over here too...
 
 func compile(_ ast: AST) -> Executor {
-  let tree = ast.dslTree
-  let prog = try! Compiler(tree: tree).emit()
+  let prog = try! Compiler.compile(ast.dslTree)
   let executor = Executor(program: prog)
   return executor
 }

@@ -11,21 +11,10 @@
 
 @_implementationOnly import _RegexParser
 
-class Compiler {
-  let tree: DSLTree
+struct Compiler {
+  static func compile(_ tree: DSLTree) throws -> Program {
+    let options = MatchingOptions()
 
-  // TODO: Or are these stored on the tree?
-  var options = MatchingOptions()
-
-  init(ast: AST) {
-    self.tree = ast.dslTree
-  }
-
-  init(tree: DSLTree) {
-    self.tree = tree
-  }
-
-  __consuming func emit() throws -> Program {
     // TODO: Handle global options
     var codegen = ByteCodeGen(
       options: options, captureList: tree.root._captureList
@@ -40,7 +29,7 @@ func _compileRegex(
   _ regex: String, _ syntax: SyntaxOptions = .traditional
 ) throws -> Executor {
   let ast = try parse(regex, .semantic, syntax)
-  let program = try Compiler(ast: ast).emit()
+  let program = try Compiler.compile(ast.dslTree)
   return Executor(program: program)
 }
 
