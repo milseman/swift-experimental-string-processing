@@ -12,6 +12,7 @@
 @_implementationOnly import _RegexParser // For errors
 
 extension MEProgram where Input.Element: Hashable {
+  // TODO: Indirect storage
   struct Builder {
     var instructions: [Instruction] = []
 

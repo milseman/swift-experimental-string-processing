@@ -11,6 +11,8 @@
 
 @_implementationOnly import _RegexParser
 
+var numMatchCalls = 0
+
 struct Executor {
   // TODO: consider let, for now lets us toggle tracing
   var engine: Engine<String>
@@ -18,6 +20,7 @@ struct Executor {
   init(program: Program, enablesTracing: Bool = false) {
     self.engine = Engine(program, enableTracing: enablesTracing)
   }
+
 
   @available(SwiftStdlib 5.7, *)
   func match<Output>(
@@ -28,6 +31,10 @@ struct Executor {
     var cpu = engine.makeProcessor(
       input: input, bounds: inputRange, matchMode: mode)
 
+    defer {
+//      print(numMatchCalls, cpu.numFails)
+      numMatchCalls += 1
+    }
     guard let endIdx = cpu.consume() else {
       if let e = cpu.failureReason {
         throw e

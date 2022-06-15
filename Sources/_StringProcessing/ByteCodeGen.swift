@@ -2,13 +2,8 @@
 
 extension Compiler {
   struct ByteCodeGen {
-    var options: MatchingOptions
+    var options = MatchingOptions()
     var builder = Program.Builder()
-
-    init(options: MatchingOptions, captureList: CaptureList) {
-      self.options = options
-      self.builder.captureList = captureList
-    }
 
     mutating func finish(
     ) throws -> Program {
@@ -718,6 +713,7 @@ extension Compiler.ByteCodeGen {
       emitMatcher(f)
 
     case let .mapOutput(retTy, fun, child):
+      _ = (retTy, fun, child)
       fatalError()
 
     case .transform:
@@ -730,6 +726,18 @@ extension Compiler.ByteCodeGen {
     case .trivia, .empty:
       return
     }
+  }
+
+  /// A top-level node for a compiled sub-program
+  /// A sub program includes the whole regex and any
+  /// programs nested under a `mapOutput`.
+  mutating func compileRootNode(
+    _ node: DSLTree.Node,
+    _ options: MatchingOptions
+  ) throws {
+    self.builder.captureList = node._captureList
+    self.options = options
+    try emitNode(node)
   }
 }
 

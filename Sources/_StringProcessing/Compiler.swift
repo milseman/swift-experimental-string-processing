@@ -13,13 +13,21 @@
 
 struct Compiler {
   static func compile(_ tree: DSLTree) throws -> Program {
-    let options = MatchingOptions()
 
-    // TODO: Handle global options
-    var codegen = ByteCodeGen(
-      options: options, captureList: tree.root._captureList
-    )
-    try codegen.emitNode(tree.root)
+    // FIXME: do options vary across iterations?
+
+    // TODO: how should options be presented?
+    var worklist = [(tree.root, MatchingOptions())]
+
+    var codegen = ByteCodeGen()
+
+    while let (node, opts) = worklist.popLast() {
+      // TOOD: Should options flow in like this?
+
+      codegen.options = opts
+      try codegen.compileRootNode(node, opts)
+    }
+
     let program = try codegen.finish()
     return program
   }

@@ -145,11 +145,12 @@ extension RegexDSLTests {
       }
     }
     func check<Output>(
-      _ re: Regex<Output>, _ kind: Kind, _ expected: String
+      _ re: Regex<Output>, _ kind: Kind, _ expected: String,
+      skip: Bool = false
     ) {
-      let aro = Regex<AnyRegexOutput>(re)
+      if skip { return }
 
-      // FIXME: The below fatal errors
+      let aro = Regex<AnyRegexOutput>(re)
       let casted = try! XCTUnwrap(Regex(aro, as: Output.self))
 
       // contains(captureNamed:)
@@ -232,9 +233,6 @@ extension RegexDSLTests {
 
     // TODO: Try regexes `as` different types to pick up different behavior
 
-    // TODO: A `mapOutput` variant that takes no-cap and produces captures
-    // by matching the other regexes inside the mapping
-
     // Run-time strings (ARO)
     check(
       try! Regex(noCapBody),
@@ -262,25 +260,28 @@ extension RegexDSLTests {
       unnamedOutput
     )
 
-//    // Use `mapOutput` to add or remove capture names
-//    check(
-//      try! Regex(unnamedBody).mapOutput(addNote),
-//      .note,
-//      noteOutput
-//    )
-//    check(
-//      try! Regex(salientBody).mapOutput(addNote),
-//      .note,
-//      noteOutput
-//    )
-//    check(try! Regex(#"""
-//      (?x)
-//      (\p{hexdigit}{4}) -? (?<salient>\p{hexdigit}{4}) -?
-//      (\p{hexdigit}{4}) -? (\p{hexdigit}{4})
-//      """#).mapOutput(removeName),
-//      .unnamed,
-//      unnamedOutput
-//    )
+    // Use `mapOutput` to add or remove capture names
+    check(
+      try! Regex(unnamedBody).mapOutput(addNote),
+      .note,
+      noteOutput,
+      skip: true // FIXME
+    )
+    check(
+      try! Regex(salientBody).mapOutput(addNote),
+      .note,
+      noteOutput,
+      skip: true // FIXME
+    )
+    check(
+      try! Regex(salientBody).mapOutput(removeName),
+      .unnamed,
+      unnamedOutput,
+      skip: true // FIXME
+    )
+    // TODO: A `mapOutput` variant that takes no-cap and produces captures
+    // by matching the other regexes inside the mapping
+
 
     // Builders
     check(
@@ -314,6 +315,21 @@ extension RegexDSLTests {
     )
 
     // TODO: add first-class capture names via `mapOutput` to DSL test
+  }
+
+  func testMapOutput() {
+
+    // TODO: Try using the same reference inside a mapOutput sub-regex
+    // It should be a different capture list
+
+    // TODO: Make sure sub-regex has different names captures, different
+    // backreferences, etc.
+
+
+    // TODO: What if a custom component makes a tuple output type? Does
+    // that get flattened? Or explicit capture?
+
+
 
   }
 }

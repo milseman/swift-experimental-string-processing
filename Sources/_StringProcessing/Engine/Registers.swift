@@ -178,6 +178,23 @@ extension MEProgram {
     var savePointAddresses = 0
     var captures = 0
 
+    var mapOutputs = Array<MapOutputInfo>()
+  }
+}
+
+extension MEProgram.RegisterInfo {
+  struct MapOutputInfo {
+    // The first read register
+    var readRegister: Int
+
+    // The number of consecutive registers read from
+    var readCount: Int
+
+    // The first write register
+    var writeRegister: Int
+
+    // The number of outputs
+    var writeCount: Int
   }
 }
 

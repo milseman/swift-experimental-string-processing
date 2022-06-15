@@ -41,6 +41,8 @@ struct Processor<
 
   var cycleCount = 0
 
+  var numFails = 0
+
   /// Our register file
   var registers: Registers
 
@@ -168,6 +170,7 @@ extension Processor {
   }
 
   mutating func signalFailure() {
+    numFails += 1
     guard let (pc, pos, stackEnd, capEnds, intRegisters) =
             savePoints.popLast()?.destructure
     else {
