@@ -110,6 +110,15 @@ extension Processor {
   // Returns whether the advance succeeded. On failure, our
   // save point was restored
   mutating func consume(_ n: Distance) -> Bool {
+    if n == 1 {
+      if currentPosition == end {
+        signalFailure()
+        return false
+      }
+      input.formIndex(after: &currentPosition)
+      return true
+    }
+
     guard let idx = input.index(
       currentPosition, offsetBy: n.rawValue, limitedBy: end
     ) else {

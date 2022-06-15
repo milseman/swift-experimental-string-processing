@@ -155,6 +155,7 @@ extension Regex {
     // should scrap the RegexConsumer crap and call this
 
     let executor = Executor(program: regex.program.loweredProgram)
+    let isGraphemeSemantic = regex.initialOptions.semanticLevel == .graphemeCluster
 
     var low = inputRange.lowerBound
     let high = inputRange.upperBound
@@ -165,7 +166,7 @@ extension Regex {
         return m
       }
       if low >= high { return nil }
-      if regex.initialOptions.semanticLevel == .graphemeCluster {
+      if isGraphemeSemantic {
         input.formIndex(after: &low)
       } else {
         input.unicodeScalars.formIndex(after: &low)
