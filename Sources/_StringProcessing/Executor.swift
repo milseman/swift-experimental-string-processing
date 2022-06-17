@@ -13,6 +13,7 @@
 
 var numMatchCalls = 0
 
+@available(SwiftStdlib 5.7, *)
 struct Executor {
   // TODO: consider let, for now lets us toggle tracing
   var engine: Engine<String>
@@ -21,20 +22,37 @@ struct Executor {
     self.engine = Engine(program, enableTracing: enablesTracing)
   }
 
+  func firstMatch<Output>(
+    _ input: String,
+    in inputRange: Range<String.Index>
+  ) throws -> Regex<Output>.Match? {
+    var current = inputRange.lowerBound
 
-  @available(SwiftStdlib 5.7, *)
-  func match<Output>(
+    var cpu = engine.makeProcessor(
+      input: input, bounds: inputRange, matchMode: .partialFromFront)
+    while true {
+      if let m: Regex<Output>.Match = try self._match(
+        input, in: inputRange, .partialFromFront, using: &cpu
+      ) {
+        return m
+      }
+      if current >= inputRange.upperBound { return nil }
+      if engine.graphemeAlignedStart {
+        input.formIndex(after: &current)
+      } else {
+        input.unicodeScalars.formIndex(after: &current)
+      }
+      cpu.reset(engine.program)
+      cpu.currentPosition = current
+    }
+  }
+
+  func _match<Output>(
     _ input: String,
     in inputRange: Range<String.Index>,
-    _ mode: MatchMode
+    _ mode: MatchMode,
+    using cpu: inout Processor<String>
   ) throws -> Regex<Output>.Match? {
-    var cpu = engine.makeProcessor(
-      input: input, bounds: inputRange, matchMode: mode)
-
-    defer {
-//      print(numMatchCalls, cpu.numFails)
-      numMatchCalls += 1
-    }
     guard let endIdx = cpu.consume() else {
       if let e = cpu.failureReason {
         throw e
@@ -61,17 +79,28 @@ struct Executor {
     } else {
       value = nil
     }
-    
+
     let anyRegexOutput = AnyRegexOutput(
       input: input,
       elements: caps
     )
-    
+
     return .init(
       anyRegexOutput: anyRegexOutput,
       range: range,
       value: value
     )
+  }
+
+  func match<Output>(
+    _ input: String,
+    in inputRange: Range<String.Index>,
+    _ mode: MatchMode
+  ) throws -> Regex<Output>.Match? {
+    var cpu = engine.makeProcessor(
+      input: input, bounds: inputRange, matchMode: mode)
+    return try _match(input, in: inputRange, mode, using: &cpu)
+
   }
 
   @available(SwiftStdlib 5.7, *)

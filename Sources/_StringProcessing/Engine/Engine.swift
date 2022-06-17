@@ -15,6 +15,10 @@ struct Engine<Input: BidirectionalCollection> where Input.Element: Hashable {
 
   var program: MEProgram<Input>
 
+  // Whether the regex starts in grapheme-semantic mode, and thus all start
+  // positions must be aligned.
+  let graphemeAlignedStart: Bool
+
   // TODO: Pre-allocated register banks
 
   var instructions: InstructionList<Instruction> { program.instructions }
@@ -33,6 +37,8 @@ struct Engine<Input: BidirectionalCollection> where Input.Element: Hashable {
       program.enableTracing = t
     }
     self.program = program
+    self.graphemeAlignedStart =
+      program.initialOptions.semanticLevel == .graphemeCluster
   }
 }
 

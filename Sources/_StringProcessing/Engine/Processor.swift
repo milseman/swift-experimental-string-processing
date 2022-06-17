@@ -30,34 +30,49 @@ struct Processor<
   Input: BidirectionalCollection
 > where Input.Element: Equatable { // maybe Hashable?
   typealias Element = Input.Element
-
   let input: Input
   let bounds: Range<Position>
   let matchMode: MatchMode
-  var currentPosition: Position
-
   let instructions: InstructionList<Instruction>
+
+  // Resettable state
+  var currentPosition: Position
   var controller: Controller
-
-  var cycleCount = 0
-
-  var numFails = 0
-
-  /// Our register file
   var registers: Registers
-
-  // Used for back tracking
-  var savePoints: [SavePoint] = []
-
+  var storedCaptures: Array<_StoredCapture>
   var callStack: [InstructionAddress] = []
-
+  var savePoints: [SavePoint] = []
   var state: State = .inProgress
-
   var failureReason: Error? = nil
 
-  var isTracingEnabled: Bool
+  // TODO: Do we want global and resetting cycle counts? Metrics struct?
+  var cycleCount = 0
+  var numFails = 0
 
-  var storedCaptures: Array<_StoredCapture>
+  var isTracingEnabled: Bool
+}
+
+extension Processor {
+  // TODO: Cleaner code organization, maybe a state struct?
+  mutating func reset(
+    // FIXME: Separate out writable registers, store enough info
+    // to reset them instead
+    _ program: MEProgram<Input>
+  ) {
+    self.currentPosition = bounds.lowerBound
+    self.controller = Controller(pc: 0)
+    self.registers = Registers(program, bounds.upperBound)
+
+    for idx in self.storedCaptures.indices {
+      self.storedCaptures[idx] = .init()
+    }
+    self.callStack.removeAll(keepingCapacity: true)
+    self.savePoints.removeAll(keepingCapacity: true)
+    self.state = .inProgress
+    self.failureReason = nil
+
+    // TODO: metrics?
+  }
 }
 
 extension Processor {

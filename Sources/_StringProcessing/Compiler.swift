@@ -33,6 +33,7 @@ struct Compiler {
   }
 }
 
+@available(SwiftStdlib 5.7, *)
 func _compileRegex(
   _ regex: String, _ syntax: SyntaxOptions = .traditional
 ) throws -> Executor {
