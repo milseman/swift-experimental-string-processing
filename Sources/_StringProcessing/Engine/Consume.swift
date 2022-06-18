@@ -24,6 +24,19 @@ extension Engine {
   }
 }
 
+extension Engine where Input == String {
+  func makeStringProcessor(
+    input: String, bounds: Range<String.Index>, matchMode: MatchMode
+  ) -> StringProcessor {
+    StringProcessor(
+      program: program,
+      input: input,
+      bounds: bounds,
+      matchMode: matchMode,
+      isTracingEnabled: enableTracing)
+  }
+}
+
 extension Processor where Input == String {
   // TODO: Should we throw here?
   mutating func consume() -> Input.Index? {
@@ -39,3 +52,17 @@ extension Processor where Input == String {
   }
 }
 
+extension StringProcessor {
+  // TODO: Should we throw here?
+  mutating func consume() -> Input.Index? {
+    while true {
+      switch self.state {
+      case .accept:
+        return self.currentPosition
+      case .fail:
+        return nil
+      case .inProgress: self.cycle()
+      }
+    }
+  }
+}

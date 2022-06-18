@@ -11,6 +11,9 @@
 
 @_implementationOnly import _RegexParser
 
+// FIXME: DO NOT MERGE
+public var _useStringProcessor = true
+
 struct Executor {
   // TODO: consider let, for now lets us toggle tracing
   var engine: Engine<String>
@@ -25,24 +28,46 @@ struct Executor {
     in inputRange: Range<String.Index>,
     graphemeSemantic: Bool
   ) throws -> Regex<Output>.Match? {
-    var cpu = engine.makeProcessor(
-      input: input, bounds: inputRange, matchMode: .partialFromFront)
+    if _useStringProcessor {
+      var cpu = engine.makeStringProcessor(
+        input: input, bounds: inputRange, matchMode: .partialFromFront)
 
-    var low = inputRange.lowerBound
-    let high = inputRange.upperBound
-    while true {
-      if let m: Regex<Output>.Match = try _match(
-        input, in: low..<high, using: &cpu
-      ) {
-        return m
+      var low = inputRange.lowerBound
+      let high = inputRange.upperBound
+      while true {
+        if let m: Regex<Output>.Match = try _match(
+          input, in: low..<high, using: &cpu
+        ) {
+          return m
+        }
+        if low >= high { return nil }
+        if graphemeSemantic {
+          input.formIndex(after: &low)
+        } else {
+          input.unicodeScalars.formIndex(after: &low)
+        }
+        cpu.reset(searchBounds: low..<high)
       }
-      if low >= high { return nil }
-      if graphemeSemantic {
-        input.formIndex(after: &low)
-      } else {
-        input.unicodeScalars.formIndex(after: &low)
+    } else {
+      var cpu = engine.makeProcessor(
+        input: input, bounds: inputRange, matchMode: .partialFromFront)
+
+      var low = inputRange.lowerBound
+      let high = inputRange.upperBound
+      while true {
+        if let m: Regex<Output>.Match = try _match(
+          input, in: low..<high, using: &cpu
+        ) {
+          return m
+        }
+        if low >= high { return nil }
+        if graphemeSemantic {
+          input.formIndex(after: &low)
+        } else {
+          input.unicodeScalars.formIndex(after: &low)
+        }
+        cpu.reset(searchBounds: low..<high)
       }
-      cpu.reset(searchBounds: low..<high)
     }
   }
 
@@ -52,9 +77,15 @@ struct Executor {
     in inputRange: Range<String.Index>,
     _ mode: MatchMode
   ) throws -> Regex<Output>.Match? {
-    var cpu = engine.makeProcessor(
-      input: input, bounds: inputRange, matchMode: mode)
-    return try _match(input, in: inputRange, using: &cpu)
+    if _useStringProcessor {
+      var cpu = engine.makeStringProcessor(
+        input: input, bounds: inputRange, matchMode: mode)
+      return try _match(input, in: inputRange, using: &cpu)
+    } else {
+      var cpu = engine.makeProcessor(
+        input: input, bounds: inputRange, matchMode: mode)
+      return try _match(input, in: inputRange, using: &cpu)
+    }
   }
 
   @available(SwiftStdlib 5.7, *)
@@ -62,6 +93,30 @@ struct Executor {
     _ input: String,
     in inputRange: Range<String.Index>,
     using cpu: inout Processor<String>
+  ) throws -> Regex<Output>.Match? {
+    guard let endIdx = cpu.consume() else {
+      if let e = cpu.failureReason {
+        throw e
+      }
+      return nil
+    }
+
+    let capList = MECaptureList(
+      values: cpu.storedCaptures,
+      referencedCaptureOffsets: engine.program.referencedCaptureOffsets)
+
+    let range = inputRange.lowerBound..<endIdx
+    let caps = engine.program.captureList.createElements(capList)
+
+    let anyRegexOutput = AnyRegexOutput(input: input, elements: caps)
+    return .init(anyRegexOutput: anyRegexOutput, range: range)
+  }
+
+  @available(SwiftStdlib 5.7, *)
+  func _match<Output>(
+    _ input: String,
+    in inputRange: Range<String.Index>,
+    using cpu: inout StringProcessor
   ) throws -> Regex<Output>.Match? {
     guard let endIdx = cpu.consume() else {
       if let e = cpu.failureReason {
