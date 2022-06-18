@@ -524,8 +524,7 @@ extension Processor {
       let value = registers[val]
       let capNum = Int(asserting: cap.rawValue)
       let sp = makeSavePoint(self.currentPC)
-      storedCaptures[capNum].registerValue(
-        value, overwriteInitial: sp)
+      storedCaptures[capNum].registerValue(value)
       controller.step()
     }
 

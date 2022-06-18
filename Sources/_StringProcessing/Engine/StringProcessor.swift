@@ -34,7 +34,7 @@ struct StringProcessor {
 
   var callStack: [InstructionAddress] = []
 
-  var storedCaptures: Array<Processor<String>._StoredCapture>
+  var storedCaptures: Array<_StoredCapture>
 
   var state: State = .inProgress
 
@@ -144,11 +144,15 @@ extension StringProcessor {
     return true
   }
 
-  mutating func advance(to nextIndex: Position) {
-    assert(nextIndex >= bounds.lowerBound)
-    assert(nextIndex <= bounds.upperBound)
-    assert(nextIndex > currentPosition)
-    currentPosition = nextIndex
+  /// Continue matching at the specified index.
+  ///
+  /// - Precondition: `bounds.contains(index) || index == bounds.upperBound`
+  /// - Precondition: `index >= currentPosition`
+  mutating func resume(at index: Input.Index) {
+    assert(index >= bounds.lowerBound)
+    assert(index <= bounds.upperBound)
+    assert(index >= currentPosition)
+    currentPosition = index
   }
 
   func doPrint(_ s: String) {
@@ -161,7 +165,7 @@ extension StringProcessor {
   func load() -> Character? {
     currentPosition < end ? input[currentPosition] : nil
   }
-  func load(count: Int) -> Substring? {
+  func load(count: Int) -> Input.SubSequence? {
     let slice = self.slice[currentPosition...].prefix(count)
     guard slice.count == count else { return nil }
     return slice
@@ -182,7 +186,7 @@ extension StringProcessor {
   // it succeeded vs signaling an error.
   mutating func matchSeq<C: Collection>(
     _ seq: C
-  ) -> Bool where C.Element == Character {
+  ) -> Bool where C.Element == Input.Element {
     for e in seq {
       guard match(e) else { return false }
     }
@@ -225,6 +229,17 @@ extension StringProcessor {
     case (_, .wholeString):
       signalFailure()
     }
+  }
+
+  mutating func clearThrough(_ address: InstructionAddress) {
+    while let sp = savePoints.popLast() {
+      if sp.pc == address {
+        controller.step()
+        return
+      }
+    }
+    // TODO: What should we do here?
+    fatalError("Invalid code: Tried to clear save points when empty")
   }
 
   mutating func cycle() {
@@ -311,8 +326,12 @@ extension StringProcessor {
       if let _ = savePoints.popLast() {
         controller.step()
       } else {
-        fatalError("TODO: What should we do here?")
+        // TODO: What should we do here?
+        fatalError("Invalid code: Tried to clear save points when empty")
       }
+
+    case .clearThrough:
+      clearThrough(payload.addr)
 
     case .peek:
       fatalError()
@@ -387,7 +406,7 @@ extension StringProcessor {
         signalFailure()
         return
       }
-      advance(to: nextIndex)
+      resume(at: nextIndex)
       controller.step()
 
     case .assertBy:
@@ -415,7 +434,7 @@ extension StringProcessor {
           return
         }
         registers[valReg] = val
-        advance(to: nextIdx)
+        resume(at: nextIdx)
         controller.step()
       } catch {
         abort(error)
@@ -493,14 +512,12 @@ extension StringProcessor {
       let value = registers[val]
       let capNum = Int(asserting: cap.rawValue)
       let sp = makeSavePoint(self.currentPC)
-      storedCaptures[capNum].registerValue(
-        value, overwriteInitial: sp)
+      storedCaptures[capNum].registerValue(value)
       controller.step()
     }
 
   }
 }
-
 // MARK: - ...
 
 
@@ -511,13 +528,13 @@ extension StringProcessor: TracedProcessor {
   var currentPC: InstructionAddress { controller.pc }
 
   func formatSavePoints() -> String {
-    if !savePoints.isEmpty {
-      var result = "save points:\n"
-      for point in savePoints {
-        result += "  \(point.describe(in: input))\n"
-      }
-      return result
-    }
+//    if !savePoints.isEmpty {
+//      var result = "save points:\n"
+//      for point in savePoints {
+//        result += "  \(point.describe(in: input))\n"
+//      }
+//      return result
+//    }
     return ""
   }
 }
@@ -570,4 +587,67 @@ extension StringProcessor {
   }
 }
 
+extension StringProcessor {
+  typealias _StoredCapture = Processor<String>._StoredCapture
+//  struct _StoredCapture {
+//    var range: Range<Position>? = nil
+//
+//    var value: Any? = nil
+//
+//    // An in-progress capture start
+//    fileprivate var currentCaptureBegin: Position? = nil
+//
+//    fileprivate func _invariantCheck() {
+//      if range == nil {
+//        assert(value == nil)
+//      }
+//    }
+//
+//    // MARK: - IPI
+//
+//    var deconstructed: (range: Range<Position>, value: Any?)? {
+//      guard let r = range else { return nil }
+//      return (r, value)
+//    }
+//
+//    /// Start a new capture. If the previously started one was un-ended,
+//    /// will clear it and restart.
+//    mutating func startCapture(
+//      _ idx: Position
+//    ) {
+//      _invariantCheck()
+//      defer { _invariantCheck() }
+//
+//      currentCaptureBegin = idx
+//    }
+//
+//    mutating func endCapture(_ idx: Position) {
+//      _invariantCheck()
+//      defer { _invariantCheck() }
+//
+//      guard let low = currentCaptureBegin else {
+//        fatalError("Invariant violated: ending unstarted capture")
+//      }
+//
+//      range = low..<idx
+//      value = nil // TODO: cleaner IPI around this...
+//      currentCaptureBegin = nil
+//    }
+//
+//    mutating func registerValue(
+//      _ value: Any,
+//      overwriteInitial: SavePoint? = nil
+//    ) {
+//      _invariantCheck()
+//      defer { _invariantCheck() }
+//
+//      self.value = value
+//    }
+//  }
+}
 
+//extension StringProcessor._StoredCapture: CustomStringConvertible {
+//  var description: String {
+//    return String(describing: self)
+//  }
+//}
