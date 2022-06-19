@@ -94,23 +94,23 @@ public struct BenchmarkRunner {
   }
   
   public func run() {
-    _useStringProcessor = false
-    print("Running Processor<String>")
-    for b in suite {
-      print("- \(b.name) \(measure(benchmark: b))")
-    }
-
-    _useStringProcessor = true
-    print("Running StringProcessor")
-    for b in suite {
-      print("- \(b.name) \(measure(benchmark: b))")
-    }
-
-    _useStringProcessor = false
-    print("Running Processor<String>")
-    for b in suite {
-      print("- \(b.name) \(measure(benchmark: b))")
-    }
+//    _useStringProcessor = false
+//    print("Running Processor<String>")
+//    for b in suite {
+//      print("- \(b.name) \(measure(benchmark: b))")
+//    }
+//
+//    _useStringProcessor = true
+//    print("Running StringProcessor")
+//    for b in suite {
+//      print("- \(b.name) \(measure(benchmark: b))")
+//    }
+//
+//    _useStringProcessor = false
+//    print("Running Processor<String>")
+//    for b in suite {
+//      print("- \(b.name) \(measure(benchmark: b))")
+//    }
 
     _useStringProcessor = true
     print("Running StringProcessor")
