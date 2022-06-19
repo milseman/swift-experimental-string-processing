@@ -14,6 +14,8 @@ enum MatchMode {
   case partialFromFront
 }
 
+private var _CR: UInt8 { return 0x0d }
+
 /// A concrete CU. Somehow will run the concrete logic and
 /// feed stuff back to generic code
 struct Controller {
@@ -93,7 +95,7 @@ extension Processor {
     _checkInvariants()
   }
 
-
+  @inline(never)
   mutating func reset(searchBounds: Range<Position>) {
     // FIXME: We currently conflate both subject bounds and search bounds
     // This should just reset search bounds
@@ -193,12 +195,18 @@ extension Processor {
 
   // Match against the current input prefix. Returns whether
   // it succeeded vs signaling an error.
-  mutating func matchSeq<C: Collection>(
-    _ seq: C
-  ) -> Bool where C.Element == Input.Element {
-    for e in seq {
-      guard match(e) else { return false }
+  mutating func matchSeq(
+    _ seq: Substring
+  ) -> Bool {
+    // TODO: fast-paths for scalar semantic modes
+
+    guard let idx = input._consumePrefix(
+      seq, startingFrom: currentPosition
+    ) else {
+      signalFailure()
+      return false
     }
+    currentPosition = idx
     return true
   }
 
@@ -394,7 +402,7 @@ extension Processor {
     case .matchSequence:
       let reg = payload.sequence
       let seq = registers[reg]
-      if matchSeq(seq) {
+      if matchSeq(seq[...]) {
         controller.step()
       }
 
@@ -526,5 +534,21 @@ extension Processor {
       controller.step()
     }
 
+  }
+}
+
+extension String {
+  fileprivate func _consumePrefix(
+    _ prefix: Substring,
+    startingFrom: Index
+  ) -> Index? {
+    // TODO: ASCII and NFC fast paths, skip grapheme breaking, etc.
+
+    var idx = startingFrom
+    for e in prefix {
+      guard idx != endIndex, self[idx] == e else { return nil }
+      self.formIndex(after: &idx)
+    }
+    return idx
   }
 }

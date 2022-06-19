@@ -25,7 +25,7 @@ struct MEProgram {
   var instructions: InstructionList<Instruction>
 
   var staticElements: [Input.Element]
-  var staticSequences: [[Input.Element]]
+  var staticSequences: [String]
   var staticStrings: [String]
   var staticConsumeFunctions: [ConsumeFunction]
   var staticAssertionFunctions: [AssertionFunction]

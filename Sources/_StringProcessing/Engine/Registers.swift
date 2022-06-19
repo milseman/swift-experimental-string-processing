@@ -25,9 +25,7 @@ extension Processor {
     var elements: [Element]
 
     // Verbatim sequences to compare against
-    //
-    // TODO: Degenericize Processor and store Strings
-    var sequences: [[Element]] = []
+    var sequences: [String] = []
 
     var consumeFunctions: [MEProgram.ConsumeFunction]
 
@@ -63,7 +61,7 @@ extension Processor.Registers {
   subscript(_ i: StringRegister) -> String {
     strings[i.rawValue]
   }
-  subscript(_ i: SequenceRegister) -> [Input.Element] {
+  subscript(_ i: SequenceRegister) -> String {
     sequences[i.rawValue]
   }
   subscript(_ i: IntRegister) -> Int {
