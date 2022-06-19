@@ -26,9 +26,8 @@ struct Controller {
   }
 }
 
-struct Processor<
-  Input: BidirectionalCollection
-> where Input.Element: Equatable { // maybe Hashable?
+struct Processor {
+  typealias Input = String
   typealias Element = Input.Element
 
   let input: Input

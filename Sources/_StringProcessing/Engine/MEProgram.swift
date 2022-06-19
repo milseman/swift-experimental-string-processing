@@ -16,7 +16,7 @@ struct MEProgram<Input: BidirectionalCollection> where Input.Element: Equatable 
   typealias AssertionFunction =
     (Input, Input.Index, Range<Input.Index>) throws -> Bool
   typealias TransformFunction =
-    (Input, Processor<Input>._StoredCapture) throws -> Any?
+    (Input, Processor._StoredCapture) throws -> Any?
   typealias MatcherFunction =
     (Input, Input.Index, Range<Input.Index>) throws -> (Input.Index, Any)?
 

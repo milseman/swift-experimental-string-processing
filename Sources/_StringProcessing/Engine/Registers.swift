@@ -58,6 +58,8 @@ extension Processor {
 }
 
 extension Processor.Registers {
+  typealias Input = String
+
   subscript(_ i: StringRegister) -> String {
     strings[i.rawValue]
   }
@@ -101,8 +103,8 @@ extension Processor.Registers {
 
 extension Processor.Registers {
   init(
-    _ program: MEProgram<Input>,
-    _ sentinel: Input.Index
+    _ program: MEProgram<String>,
+    _ sentinel: String.Index
   ) {
     let info = program.registerInfo
 
