@@ -13,7 +13,7 @@
 // But, we can play around with this.
 struct Engine {
 
-  var program: MEProgram<String>
+  var program: MEProgram
 
   // TODO: Pre-allocated register banks
 
@@ -25,7 +25,7 @@ struct Engine {
   }
 
   init(
-    _ program: MEProgram<String>,
+    _ program: MEProgram,
     enableTracing: Bool? = nil
   ) {
     var program = program

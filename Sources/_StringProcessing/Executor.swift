@@ -15,7 +15,7 @@ struct Executor {
   // TODO: consider let, for now lets us toggle tracing
   var engine: Engine
 
-  init(program: Program, enablesTracing: Bool = false) {
+  init(program: MEProgram, enablesTracing: Bool = false) {
     self.engine = Engine(program, enableTracing: enablesTracing)
   }
 
