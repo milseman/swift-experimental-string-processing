@@ -202,6 +202,60 @@ extension Processor {
     return true
   }
 
+  @inline(never)
+  mutating func _slowMatchSeqBytes(
+    _ seqReg: SequenceRegister
+  ) -> Bool {
+    let bytes = registers[seqReg]
+    let seq = String(decoding: bytes, as: UTF8.self)
+    return matchSeq(seq)
+  }
+
+  mutating func matchSeqBytes(
+    _ seqReg: SequenceRegister
+  ) -> Bool {
+    let other = registers[seqReg]
+
+    #if false // TODO(performance): silgen_name it up
+    // TODO(stdlib): API for this
+    //
+    // TODO(performance): Investigate if there's ARC around this
+
+    let nfc = slice._nfc
+    var curIdx = nfc.startIndex
+
+    // TODO(performance): Investigate how to get to UTF-8 directly
+    guard slice._nfc.lazy.flatMap { $0.utf8 }.starts(with: other) else {
+      signalFailure()
+      return false
+    }
+    #endif
+
+    // TODO: Clean up all the bounds and slicing code...
+    guard let endIdx = input.utf8.index(
+      currentPosition, offsetBy: other.count, limitedBy: bounds.upperBound
+    ) else {
+      signalFailure()
+      return false
+    }
+
+    // ASCII input portion fast path
+    guard input[currentPosition..<endIdx]._isASCII else {
+      return _slowMatchSeqBytes(seqReg)
+    }
+
+    let isEnd = endIdx == bounds.upperBound
+    guard other.elementsEqual(input.utf8[currentPosition..<endIdx]),
+          isEnd || input.isOnGraphemeClusterBoundary(endIdx)
+    else {
+      signalFailure()
+      return false
+    }
+
+    assert(_slowMatchSeqBytes(seqReg))
+    return true
+  }
+
   mutating func signalFailure() {
     guard let (pc, pos, stackEnd, capEnds, intRegisters) =
             savePoints.popLast()?.destructure
@@ -393,8 +447,7 @@ extension Processor {
 
     case .matchSequence:
       let reg = payload.sequence
-      let seq = registers[reg]
-      if matchSeq(seq) {
+      if matchSeqBytes(reg) {
         controller.step()
       }
 
@@ -527,4 +580,13 @@ extension Processor {
     }
 
   }
+}
+
+extension String {
+  func _isOnGraphemeClusterBoundary(_ i: Index) -> Bool {
+    String.Index(i, within: self) != nil
+  }
+}
+extension Substring {
+  var _isASCII: Bool { utf8.allSatisfy { $0 < 0x80 } }
 }

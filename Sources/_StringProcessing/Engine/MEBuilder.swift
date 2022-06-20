@@ -16,7 +16,7 @@ extension MEProgram {
     var instructions: [Instruction] = []
 
     var elements = TypedSetVector<Input.Element, _ElementRegister>()
-    var sequences = TypedSetVector<[Input.Element], _SequenceRegister>()
+    var sequences = TypedSetVector<String, _SequenceRegister>()
     var strings = TypedSetVector<String, _StringRegister>()
 
     var consumeFunctions: [ConsumeFunction] = []

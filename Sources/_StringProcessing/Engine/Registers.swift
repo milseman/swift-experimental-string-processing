@@ -26,8 +26,11 @@ extension Processor {
 
     // Verbatim sequences to compare against
     //
-    // TODO: Degenericize Processor and store Strings
-    var sequences: [[Element]] = []
+    // Invariant: Validly-encoded UTF-8 in NFC
+    //
+    // TODO(performance): Investigate flattening, make
+    // SequenceRegister a bit-packed range
+    var sequences: [[UInt8]] = []
 
     var consumeFunctions: [MEProgram.ConsumeFunction]
 
@@ -63,7 +66,7 @@ extension Processor.Registers {
   subscript(_ i: StringRegister) -> String {
     strings[i.rawValue]
   }
-  subscript(_ i: SequenceRegister) -> [Input.Element] {
+  subscript(_ i: SequenceRegister) -> [UInt8] {
     sequences[i.rawValue]
   }
   subscript(_ i: IntRegister) -> Int {
@@ -111,7 +114,8 @@ extension Processor.Registers {
     self.elements = program.staticElements
     assert(elements.count == info.elements)
 
-    self.sequences = program.staticSequences
+    // TODO(stdlib): Make a real API
+    self.sequences = program.staticSequences.map(\._nfcCodeUnits)
     assert(sequences.count == info.sequences)
 
     self.consumeFunctions = program.staticConsumeFunctions
@@ -137,6 +141,8 @@ extension Processor.Registers {
 
     self.values = Array(
       repeating: SentinelValue(), count: info.values)
+
+    _checkInvariants()
   }
 
   mutating func reset(sentinel: Input.Index) {
@@ -144,6 +150,16 @@ extension Processor.Registers {
     self.ints._setAll(to: 0)
     self.positions._setAll(to: sentinel)
     self.values._setAll(to: SentinelValue())
+    _checkInvariants()
+  }
+
+  func _checkInvariants() {
+    assert(
+      sequences.allSatisfy {
+        let s = String(decoding: $0, as: UTF8.self)
+        return s.utf8.elementsEqual(s._nfcCodeUnits)
+      }
+    )
   }
 }
 
