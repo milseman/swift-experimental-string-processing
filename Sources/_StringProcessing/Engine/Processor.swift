@@ -104,8 +104,12 @@ extension Processor {
 
     self.registers.reset(sentinel: bounds.upperBound)
 
-    self.savePoints.removeAll(keepingCapacity: true)
-    self.callStack.removeAll(keepingCapacity: true)
+    // FIXME(stdlib): The below avoids some array allocations, but it
+    // shouldn't...
+    while let _ = self.savePoints.popLast() { }
+    while let _ = self.callStack.popLast() { }
+//    self.savePoints.removeAll(keepingCapacity: true)
+//    self.callStack.removeAll(keepingCapacity: true)
 
     for idx in storedCaptures.indices {
       storedCaptures[idx] = .init()
