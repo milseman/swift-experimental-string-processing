@@ -73,13 +73,8 @@ public struct BenchmarkRunner {
 }
 
 extension BenchmarkRunner {
-  var dateStyle: Date.FormatStyle {
-    Date.FormatStyle()
-      .year(.twoDigits)
-      .month(.twoDigits)
-      .day(.twoDigits)
-      .hour(.twoDigits(amPM: .omitted))
-      .minute(.twoDigits)
+  var dateStyle: Date.ISO8601FormatStyle {
+    Date.ISO8601FormatStyle()
   }
   
   var outputFolderUrl: URL {
@@ -92,6 +87,7 @@ extension BenchmarkRunner {
   
   public func save() throws {
     let now = startTime.formatted(dateStyle)
+    print(now)
     let resultJsonUrl = outputFolderUrl.appendingPathComponent(now + "-result.json")
     print("Saving result to \(resultJsonUrl.path)")
     try results.save(to: resultJsonUrl)
