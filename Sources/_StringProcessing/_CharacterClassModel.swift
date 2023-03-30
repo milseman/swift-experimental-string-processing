@@ -145,14 +145,8 @@ struct _CharacterClassModel: Hashable {
         matched = char.isWordCharacter && asciiCheck
       }
     }
-    if isInverted {
-      matched.toggle()
-    }
-    if matched {
-      return next
-    } else {
-      return nil
-    }
+    guard matched != isInverted else { return nil }
+    return next
   }
 }
 

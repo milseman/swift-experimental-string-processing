@@ -115,14 +115,7 @@ extension Processor {
         matched = char.isWordCharacter && asciiCheck
       }
     }
-
-    if isInverted {
-      matched.toggle()
-    }
-
-    guard matched else {
-      return nil
-    }
+    guard matched != isInverted else { return nil }
     return next
   }
   
