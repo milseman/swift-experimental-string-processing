@@ -28,6 +28,15 @@ extension Processor {
     return true
   }
   
+
+/*
+
+  - 128-bit vectors for ASCII character classes
+  - evalute: encode which bit vector to choose (instead of extra switch)
+
+*/
+
+
   func _doMatchBuiltin(
     _ cc: _CharacterClassModel.Representation,
     _ isInverted: Bool,

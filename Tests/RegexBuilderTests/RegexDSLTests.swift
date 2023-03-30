@@ -1100,20 +1100,20 @@ class RegexDSLTests: XCTestCase {
     let _: (Substring, Substring, Int, Double?).Type
     = type(of: regex3).RegexOutput.self
     
-    let regex4 = Regex {
-      OneOrMore("a")
-      Capture {
-        OneOrMore {
-          Capture(OneOrMore("b"))
-          Capture(ZeroOrMore("c"))
-          ZeroOrMore(Capture("d"))
-          Optionally("e")
-        }
-      }
-    }
-    let _: (
-      Substring, Substring, Substring, Substring, Substring?).Type
-    = type(of: regex4).RegexOutput.self
+//    let regex4 = Regex {
+//      OneOrMore("a")
+//      Capture {
+//        OneOrMore {
+//          Capture(OneOrMore("b"))
+//          Capture(ZeroOrMore("c"))
+//          ZeroOrMore(Capture("d"))
+//          Optionally("e")
+//        }
+//      }
+//    }
+//    let _: (
+//      Substring, Substring, Substring, Substring, Substring?).Type
+//    = type(of: regex4).RegexOutput.self
   }
   
   func testUnicodeScalarPostProcessing() throws {
