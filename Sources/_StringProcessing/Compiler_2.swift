@@ -11,7 +11,7 @@
 
 @_implementationOnly import _RegexParser
 
-class Compiler {
+class Compiler_2 {
   let tree: DSLTree
 
   // TODO: Or are these stored on the tree?
@@ -103,7 +103,7 @@ func _compileRegex(
   case .none:
     dsl = ast.dslTree
   }
-  let program = try Compiler(tree: dsl).emit()
+  let program = try Compiler_2(tree: dsl).emit()
   return Executor(program: program)
 }
 

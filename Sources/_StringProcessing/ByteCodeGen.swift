@@ -14,7 +14,7 @@ import Swift
 
 @_implementationOnly import _RegexParser
 
-extension Compiler {
+extension Compiler_2 {
   struct ByteCodeGen {
     var options: MatchingOptions
     var builder = MEProgram.Builder()
@@ -39,7 +39,7 @@ extension Compiler {
   }
 }
 
-extension Compiler.ByteCodeGen {
+extension Compiler_2.ByteCodeGen {
   mutating func emitRoot(_ root: DSLTree.Node) throws -> MEProgram {
     // The whole match (`.0` element of output) is equivalent to an implicit
     // capture over the entire regex.
@@ -49,7 +49,7 @@ extension Compiler.ByteCodeGen {
   }
 }
 
-fileprivate extension Compiler.ByteCodeGen {
+fileprivate extension Compiler_2.ByteCodeGen {
   mutating func emitAtom(_ a: DSLTree.Atom) throws {
     defer {
       if a.isMatchable {

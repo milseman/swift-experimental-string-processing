@@ -159,7 +159,7 @@ extension Regex {
       }
       
       // Compile the DSLTree into a lowered program and store it atomically.
-      let compiledProgram = try! Compiler(tree: tree, compileOptions: compileOptions).emit()
+      let compiledProgram = try! Compiler_2(tree: tree, compileOptions: compileOptions).emit()
       let storedNewProgram = _stdlib_atomicInitializeARCRef(
         object: &_loweredProgramStorage,
         desired: ProgramBox(compiledProgram))
@@ -222,7 +222,7 @@ extension Regex {
         program._loweredProgramStorage = nil
         return true
       case .recompile:
-        let _ = try Compiler(
+        let _ = try Compiler_2(
           tree: program.tree,
           compileOptions: program.compileOptions).emit()
         return true
