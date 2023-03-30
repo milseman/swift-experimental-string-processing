@@ -47,9 +47,9 @@ extension Processor {
       return nil
     }
 
-    let asciiCheck = (char.isASCII && !isScalarSemantics)
+    let asciiCheck = !isStrictASCII
       || (scalar.isASCII && isScalarSemantics)
-      || !isStrictASCII
+      || char.isASCII
 
     var matched: Bool
     var next: Input.Index
