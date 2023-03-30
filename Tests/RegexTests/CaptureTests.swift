@@ -130,7 +130,7 @@ extension StringCapture {
 
 func compile(_ ast: AST) -> Executor {
   let tree = ast.dslTree
-  let prog = try! Compiler(tree: tree).emit()
+  let prog = try! Compiler_2(tree: tree).emit()
   let executor = Executor(program: prog)
   return executor
 }
