@@ -87,10 +87,20 @@ struct Processor {
   var failureReason: Error? = nil
 
   // MARK: Metrics, debugging, etc.
-  var cycleCount = 0
-  var isTracingEnabled: Bool
-  let shouldMeasureMetrics: Bool
-  var metrics: ProcessorMetrics = ProcessorMetrics()
+  var cycleCount: Int { 0 }// = 0
+  var isTracingEnabled: Bool// = false
+  {
+    get { false }
+    set { _ = newValue }
+  }
+  var shouldMeasureMetrics: Bool { false }
+  var metrics = ProcessorMetrics()
+
+
+  // Fast-paths
+
+  /// Set if the string has fast contiguous UTF-8 available
+  let fastUTF8: UnsafeRawBufferPointer? = nil
 }
 
 extension Processor {
@@ -116,14 +126,16 @@ extension Processor {
     self.subjectBounds = subjectBounds
     self.searchBounds = searchBounds
     self.matchMode = matchMode
-    self.isTracingEnabled = isTracingEnabled
-    self.shouldMeasureMetrics = shouldMeasureMetrics
+//    self.isTracingEnabled = isTracingEnabled
+//    self.shouldMeasureMetrics = shouldMeasureMetrics
     self.currentPosition = searchBounds.lowerBound
 
     // Initialize registers with end of search bounds
     self.registers = Registers(program, searchBounds.upperBound)
     self.storedCaptures = Array(
        repeating: .init(), count: program.registerInfo.captures)
+
+    // print(MemoryLayout<Processor>.size)
 
     _checkInvariants()
   }
@@ -265,6 +277,8 @@ extension Processor {
     return true
   }
 
+  @inline(never)
+  @_effects(releasenone)
   func loadScalar() -> Unicode.Scalar? {
     currentPosition < end ? input.unicodeScalars[currentPosition] : nil
   }
