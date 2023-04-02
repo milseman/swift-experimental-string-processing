@@ -91,6 +91,8 @@ struct Processor {
   var isTracingEnabled: Bool
   let shouldMeasureMetrics: Bool
   var metrics: ProcessorMetrics = ProcessorMetrics()
+
+  let fastUTF8: UnsafeRawBufferPointer? = nil
 }
 
 extension Processor {
