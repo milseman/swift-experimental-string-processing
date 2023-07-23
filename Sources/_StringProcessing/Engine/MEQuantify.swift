@@ -62,7 +62,7 @@ extension Processor {
       }
       let next = _doQuantifyMatch(payload)
       guard let idx = next else {
-        if !savePoint.rangeIsEmpty {
+        if savePoint.isQuantified {
           // The last save point has saved the current, non-matching position,
           // so it's unneeded.
           savePoint.shrinkRange(input)
@@ -78,7 +78,7 @@ extension Processor {
       return false
     }
 
-    if !savePoint.rangeIsEmpty {
+    if savePoint.isQuantified {
       savePoints.append(savePoint)
     }
     return true
@@ -102,7 +102,7 @@ extension Processor {
 
     // The last save point has saved the current position, so it's unneeded
     savePoint.shrinkRange(input)
-    if !savePoint.rangeIsEmpty {
+    if savePoint.isQuantified {
       savePoints.append(savePoint)
     }
     return true
@@ -123,13 +123,13 @@ extension Processor {
       savePoint.updateRange(newEnd: currentPosition)
     }
 
-    if savePoint.rangeIsEmpty {
+    if !savePoint.isQuantified {
       signalFailure()
       return false
     }
     // The last save point has saved the current position, so it's unneeded
     savePoint.shrinkRange(input)
-    if !savePoint.rangeIsEmpty {
+    if savePoint.isQuantified {
       savePoints.append(savePoint)
     }
     return true
