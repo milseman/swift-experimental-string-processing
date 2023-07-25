@@ -291,7 +291,7 @@ extension Processor {
     _ bitset: DSLTree.CustomCharacterClass.AsciiBitset,
     isScalarSemantics: Bool
   ) -> Bool {
-    guard let next = input.matchBitset(
+    guard let next = input.matchASCIIBitset(
       bitset,
       at: currentPosition,
       limitedBy: end,
@@ -723,22 +723,59 @@ extension String {
     return idx
   }
 
-  func matchBitset(
+  // TODO: effects? release none? conuming self?
+  private func _getNextIndex(
+    at pos: Index, isScalarSemantics: Bool, returnNil: Bool
+  ) -> Index? {
+    assert(pos < endIndex)
+    if returnNil { return nil }
+    if isScalarSemantics {
+      return self.unicodeScalars.index(after: pos)
+    }
+    return self.index(after: pos)
+  }
+
+  func matchASCIIBitset(
     _ bitset: DSLTree.CustomCharacterClass.AsciiBitset,
     at pos: Index,
     limitedBy end: Index,
     isScalarSemantics: Bool
   ) -> Index? {
-    // TODO: extremely quick-check-able
-    // TODO: can be sped up with string internals
-    if isScalarSemantics {
-      guard pos < end else { return nil }
-      guard bitset.matches(unicodeScalars[pos]) else { return nil }
-      return unicodeScalars.index(after: pos)
-    } else {
-      guard let (char, next) = characterAndEnd(at: pos, limitedBy: end),
-            bitset.matches(char) else { return nil }
-      return next
+    assert(end <= endIndex)
+
+    guard pos < end else { return nil }
+
+    // TODO: Inversion should be tracked and handled in only one place..
+    let isInverted = bitset.isInverted
+
+    // TODO: Want something more specialized, so overhaul/refactor _quickASCIICharacter
+    guard let (byte, next, isCRLF) = _quickASCIICharacter(at: pos) else {
+      // FIXME: what if following index is beyond end?
+      if isScalarSemantics {
+        return bitset.matches(self.unicodeScalars[pos]) ? self.unicodeScalars.index(after: pos) : nil
+      }
+
+      return bitset.matches(self[pos]) ? self.index(after: pos) : nil
     }
+
+    // TODO: refactor, this checks the inversion property for us
+    guard bitset.matches(byte) else {
+      return nil
+    }
+
+    // CR-LF should only match `[\r]` in scalar semantic mode or if inverted
+    if isCRLF {
+      // TODO: what if next is past `end` because CRLF?
+      // FIXME: quickASCIICharacter probably needs a limtedBy argument
+      if isScalarSemantics {
+        return self.unicodeScalars.index(before: next)
+      }
+      if isInverted {
+        return next
+      }
+      return nil
+    }
+
+    return next
   }
 }
