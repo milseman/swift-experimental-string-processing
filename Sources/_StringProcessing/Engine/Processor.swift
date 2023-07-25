@@ -706,6 +706,29 @@ extension String {
     assert(end <= endIndex)
 
     guard pos < end else { return nil }
+
+    if scalar.isASCII {
+      // TODO: Want something more specialized, so overhaul/refactor _quickASCIICharacter
+      // FIXME: What if next is past end?
+      if let (byte, next, isCRLF) = _quickASCIICharacter(at: pos) {
+        if isCRLF {
+          if boundaryCheck {
+            return nil
+          }
+          return UInt32(truncatingIfNeeded: byte) == scalar.value ? unicodeScalars.index(before: next) : nil
+        }
+        let matches: Bool
+        if isCaseInsensitive {
+          let byteAsScalar = UnicodeScalar(byte)
+          // TODO: fast-path for ASCII case-invariance check
+          matches = byteAsScalar.properties.lowercaseMapping == scalar.properties.lowercaseMapping
+        } else {
+          matches = UInt32(truncatingIfNeeded: byte) == scalar.value
+        }
+        return matches ? next : nil
+      }
+    }
+
     let curScalar = unicodeScalars[pos]
 
     if isCaseInsensitive {
