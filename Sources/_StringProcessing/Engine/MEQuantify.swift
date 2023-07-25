@@ -4,7 +4,7 @@ extension Processor {
 
     switch payload.type {
     case .bitset:
-      return input.matchBitset(
+      return input.matchASCIIBitset(
         registers[payload.bitset],
         at: currentPosition,
         limitedBy: end,

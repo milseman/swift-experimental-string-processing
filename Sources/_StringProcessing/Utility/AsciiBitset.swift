@@ -49,7 +49,8 @@ extension DSLTree.CustomCharacterClass {
       }
     }
 
-    private func matches(_ val: UInt8) -> Bool {
+    // Whether the val matches (without checking for inversion) the bitset
+    internal func _matchesWithoutInversion(_ val: UInt8) -> Bool {
       if val < 64 {
         return (a >> val) & 1 == 1
       } else {
@@ -57,10 +58,15 @@ extension DSLTree.CustomCharacterClass {
       }
     }
 
+    internal func matches(_ byte: UInt8) -> Bool {
+      guard byte < 128 else { return isInverted }
+      return _matchesWithoutInversion(byte) == !isInverted
+    }
+
     internal func matches(_ char: Character) -> Bool {
       let matched: Bool
       if let val = char._singleScalarAsciiValue {
-        matched = matches(val)
+        matched = _matchesWithoutInversion(val)
       } else {
         matched = false
       }
@@ -75,7 +81,7 @@ extension DSLTree.CustomCharacterClass {
       let matched: Bool
       if scalar.isASCII {
         let val = UInt8(ascii: scalar)
-        matched = matches(val)
+        matched = _matchesWithoutInversion(val)
       } else {
         matched = false
       }
