@@ -2,6 +2,8 @@ extension Processor {
   func _doQuantifyMatch(_ payload: QuantifyPayload) -> Input.Index? {
     let isScalarSemantics = payload.isScalarSemantics
 
+    // FIXME: should have a bounds check...
+
     switch payload.type {
     case .bitset:
       return input.matchASCIIBitset(
@@ -104,6 +106,33 @@ extension Processor {
   // performance difference
   @inline(__always)
   mutating func _doRunEagerZeroOrMoreQuantify(_ payload: QuantifyPayload) {
+    // Fast-path for `.*`
+    // TODO: consider specialized instruction/compilation...
+    if payload.type == .any {
+      let rangeEnd: String.Index
+      if payload.anyMatchesNewline {
+        rangeEnd = end
+      } else {
+
+        // FIXME: we should have the bounds checks in better places...
+        if currentPosition >= end {
+          return
+        }
+
+        rangeEnd = input.scanUntilNewline(
+          startingFrom: currentPosition,
+          limitedBy: end,
+          isScalarSemantics: payload.isScalarSemantics)
+      }
+      savePoints.append(makeQuantifiedSavePoint(
+        currentPosition..<rangeEnd,
+        isScalarSemantics: payload.isScalarSemantics))
+
+      // FIXME: rangeEnd should back up one, so as not to re-do currentPosition...
+      currentPosition = rangeEnd
+      return
+    }
+
     guard let next = _doQuantifyMatch(payload) else {
       // Consumed no input, no point saved
       return
@@ -114,7 +143,7 @@ extension Processor {
     let rangeStart = currentPosition
     var rangeEnd = currentPosition
     currentPosition = next
-    while true {
+    while true { // FIXME: should have a bounds check...
       guard let next = _doQuantifyMatch(payload) else { break }
       rangeEnd = currentPosition
       currentPosition = next

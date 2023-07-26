@@ -805,4 +805,27 @@ extension String {
 
     return next
   }
+
+  // Scan until we hit a newline
+  func scanUntilNewline(
+    startingFrom pos: Index,
+    limitedBy end: Index,
+    isScalarSemantics: Bool // Actually irrelevant, as newline is first-scalar
+  ) -> Index {
+    assert(pos < end)
+
+    // TODO: native fast paths, etc...
+    // TODO: don't defer to common code, specialized loop
+
+    var cur = pos
+    while let next = matchAnyNonNewline(
+      at: cur, isScalarSemantics: isScalarSemantics
+    ) {
+      if next >= end { return end }
+      cur = next
+    }
+
+    if cur >= end { return end }
+    return cur
+  }
 }
