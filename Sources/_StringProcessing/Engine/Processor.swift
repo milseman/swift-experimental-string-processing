@@ -649,7 +649,6 @@ extension String {
     isCaseInsensitive: Bool
   ) -> Index? {
     // TODO: This can be greatly sped up with string internals
-    // TODO: This is also very much quick-check-able
     assert(end <= endIndex)
 
     guard pos < end else { return nil }
@@ -675,6 +674,7 @@ extension String {
     // TODO: This can be greatly sped up with string internals
     // TODO: This is also very much quick-check-able
     assert(end <= endIndex)
+
 
     var cur = pos
 

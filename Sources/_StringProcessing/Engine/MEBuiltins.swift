@@ -144,6 +144,35 @@ extension String {
       isScalarSemantics: isScalarSemantics)
   }
 
+  // FIXME: this is actually slower than old one, part
+  // of it is the end limit, etc. Need to fix and figure out.
+  @inline(__always)
+  private func _quickMatchAnyNonNewline_new(
+    at currentPosition: String.Index,
+    // FIXME: plumb limit throughout
+    isScalarSemantics: Bool
+  ) -> QuickResult<String.Index?> {
+
+    assert(currentPosition < endIndex)
+    guard let (asciiValue, next, hasBoundary) = _quickASCIIScalar(
+      at: currentPosition,
+      // FIXME: plumb limit throughout
+      limitedBy: endIndex,
+      quickCheckBoundary: !isScalarSemantics
+    ) else {
+      return .unknown
+    }
+    if !isScalarSemantics && hasBoundary != true {
+      return .unknown
+    }
+    switch asciiValue {
+    case (._lineFeed)...(._carriageReturn):
+      return .definite(nil)
+    default:
+      return .definite(next)
+    }
+  }
+
   @inline(__always)
   private func _quickMatchAnyNonNewline(
     at currentPosition: String.Index,
@@ -163,6 +192,7 @@ extension String {
       return .definite(next)
     }
   }
+
 
   @inline(never)
   private func _thoroughMatchAnyNonNewline(

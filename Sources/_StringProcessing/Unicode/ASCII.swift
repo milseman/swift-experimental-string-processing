@@ -81,6 +81,52 @@ extension UInt8 {
 }
 
 extension String {
+
+  func _loadTwoUTF8(
+    from idx: Index,
+    limitedBy end: Index
+  ) -> (UInt8, UInt8?) {
+    fatalError()
+  }
+
+  // @inline(__always)
+  func _quickASCIIScalar(
+    at idx: Index,
+    limitedBy end: Index,
+    quickCheckBoundary: Bool
+  ) -> (UInt8, next: Index, quickBoundaryAfter: Bool?)? {
+    // TODO: native fast-path
+    assert(idx < end)
+
+    let byte = self.utf8[idx]
+    guard byte._isASCII else {
+      assert(!self[idx].isASCII)
+      return nil
+    }
+
+    let nextIdx = self.utf8.index(after: idx)
+
+    if nextIdx >= end {
+      // Return end instead of next, as it is the bound
+      return (byte, end, true)
+    }
+
+    if !quickCheckBoundary {
+      return (byte, nextIdx, nil)
+    }
+
+    let nextByte = self.utf8[nextIdx]
+    guard nextByte._isSub300StartingByte else {
+      return (byte, nextIdx, false)
+    }
+
+    // NOTE: we don't check the third byte past CRLF, which might be a
+    // combining scalar, because callers presumably just want to know
+    // single-scalar Character or not
+    let isCRLF = byte == ._carriageReturn && nextByte == ._lineFeed  
+    return (byte, nextIdx, !isCRLF)
+  }
+
   /// TODO: better to take isScalarSemantics parameter, we can return more results
   /// and we can give the right `next` index, not requiring the caller to re-adjust it
   /// TODO: detailed description of nuanced semantics
@@ -88,6 +134,18 @@ extension String {
     at idx: Index
   ) -> (first: UInt8, next: Index, crLF: Bool)? {
     // TODO: fastUTF8 version
+
+    /*
+
+     native scheme, where we should have the assertions (like quick-vs-not)
+
+     - non-CRLF wanting version:
+      - get next 2 bytes
+      - check CRLF return nil
+      - check >=300 return nil
+      - guard ascii byte else return nil
+      - return byte
+     */
 
     if idx == endIndex {
       return nil
