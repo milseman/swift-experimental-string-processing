@@ -121,18 +121,11 @@ enum _SavePointAddress {}
 typealias ElementRegister = TypedInt<_ElementRegister>
 enum _ElementRegister {}
 
-typealias SequenceRegister = TypedInt<_SequenceRegister>
-enum _SequenceRegister {}
-
 /// The register number for a stored boolean value
 ///
 /// E.g. used for conditional branches
 typealias BoolRegister = TypedInt<_BoolRegister>
 enum _BoolRegister {}
-
-/// The register number for a string (e.g. comment, failure reason)
-typealias StringRegister = TypedInt<_StringRegister>
-enum _StringRegister {}
 
 /// Used for matching sets of ascii values via bitsets
 typealias AsciiBitsetRegister = TypedInt<_AsciiBitsetRegister>

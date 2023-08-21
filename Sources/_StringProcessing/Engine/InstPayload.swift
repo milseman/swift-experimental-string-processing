@@ -27,46 +27,6 @@ extension Instruction {
   }
 }
 
-extension Instruction.Payload {
-  // For modeling, perhaps tooling, but likely not for
-  // execution
-  private enum Kind {
-    // TODO: We should choose operand ordering based on codegen
-    //
-    // For now, we do:
-    //   Immediate < InstAddr < ConsumeFuncReg < ElementReg
-    //   (compile)   (link)     (link)           (link)
-    //
-    //   ... < BoolReg < IntReg
-    //
-    // That is, optimization-time constant, link-time constant,
-    // and variables
-
-    case string(StringRegister)
-    case sequence(SequenceRegister)
-    case position(PositionRegister)
-    case int(IntRegister)
-    case distance(Distance)
-    case bool(BoolRegister)
-    case element(ElementRegister)
-    case consumer(ConsumeFunctionRegister)
-    case bitset(AsciiBitsetRegister)
-    case addr(InstructionAddress)
-    case capture(CaptureRegister)
-
-    case packedImmInt(Int, IntRegister)
-    case packedAddrBool(InstructionAddress, BoolRegister)
-    case packedAddrInt(InstructionAddress, IntRegister)
-    case packedAddrAddr(InstructionAddress, InstructionAddress)
-    case packedBoolInt(BoolRegister, IntRegister)
-    case packedEltBool(ElementRegister, BoolRegister)
-    case packedPosPos(PositionRegister, PositionRegister)
-    case packedCapTran(CaptureRegister, TransformRegister)
-    case packedMatchVal(MatcherRegister, ValueRegister)
-    case packedValueCapture(ValueRegister, CaptureRegister)
-  }
-}
-
 // MARK: - Payload getters
 
 extension Instruction.Payload {
@@ -127,13 +87,6 @@ extension Instruction.Payload {
   }
 
   // MARK: Single operand payloads
-
-  init(string: StringRegister) {
-    self.init(string)
-  }
-  var string: StringRegister {
-    interpret()
-  }
   
   init(scalar: Unicode.Scalar) {
     self.init(UInt64(scalar.value))
@@ -153,13 +106,6 @@ extension Instruction.Payload {
     let boundaryCheck = (self.rawValue >> 54) & 1 == 1
     let scalar = Unicode.Scalar(_value: UInt32(self.rawValue & 0xFFFF_FFFF))
     return (scalar, caseInsensitive: caseInsensitive, boundaryCheck: boundaryCheck)
-  }
-
-  init(sequence: SequenceRegister) {
-    self.init(sequence)
-  }
-  var sequence: SequenceRegister {
-    interpret()
   }
 
   init(position: PositionRegister) {

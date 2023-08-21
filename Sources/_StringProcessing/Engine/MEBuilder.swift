@@ -20,7 +20,6 @@ extension MEProgram {
     var enableMetrics = false
 
     var elements = TypedSetVector<Input.Element, _ElementRegister>()
-    var sequences = TypedSetVector<[Input.Element], _SequenceRegister>()
 
     var asciiBitsets: [DSLTree.CustomCharacterClass.AsciiBitset] = []
     var consumeFunctions: [ConsumeFunction] = []
@@ -384,7 +383,6 @@ extension MEProgram.Builder {
 
     var regInfo = MEProgram.RegisterInfo()
     regInfo.elements = elements.count
-    regInfo.sequences = sequences.count
     regInfo.ints = nextIntRegister.rawValue
     regInfo.values = nextValueRegister.rawValue
     regInfo.positions = nextPositionRegister.rawValue
@@ -397,7 +395,6 @@ extension MEProgram.Builder {
     return MEProgram(
       instructions: InstructionList(instructions),
       staticElements: elements.stored,
-      staticSequences: sequences.stored,
       staticBitsets: asciiBitsets,
       staticConsumeFunctions: consumeFunctions,
       staticTransformFunctions: transformFunctions,

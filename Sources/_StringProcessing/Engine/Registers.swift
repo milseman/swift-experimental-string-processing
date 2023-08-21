@@ -53,9 +53,6 @@ extension Processor {
 extension Processor.Registers {
   typealias Input = String
 
-  subscript(_ i: SequenceRegister) -> [Input.Element] {
-    sequences[i.rawValue]
-  }
   subscript(_ i: IntRegister) -> Int {
     get { ints[i.rawValue] }
     set { ints[i.rawValue] = newValue }
@@ -102,9 +99,6 @@ extension Processor.Registers {
 
     self.elements = program.staticElements
     assert(elements.count == info.elements)
-
-    self.sequences = program.staticSequences
-    assert(sequences.count == info.sequences)
 
     self.bitsets = program.staticBitsets
     assert(bitsets.count == info.bitsets)

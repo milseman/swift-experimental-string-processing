@@ -23,7 +23,6 @@ struct MEProgram {
   var instructions: InstructionList<Instruction>
 
   var staticElements: [Input.Element]
-  var staticSequences: [[Input.Element]]
   var staticBitsets: [DSLTree.CustomCharacterClass.AsciiBitset]
   var staticConsumeFunctions: [ConsumeFunction]
   var staticTransformFunctions: [TransformFunction]
