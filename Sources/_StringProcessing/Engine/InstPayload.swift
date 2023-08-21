@@ -29,6 +29,70 @@ extension Instruction {
 
 // MARK: - Payload getters
 
+/*
+
+TODO: overhaul general quantification, would clean up registers and a lot of
+complexity.
+
+
+
+- quantify
+  - optional trip range register
+  - quant kind
+  - match kind
+
+
+- quantify
+  - kind:
+    - asciiBitset
+    - asciiCharacter
+    - any
+    - builtinCharacterClass
+    - startGeneralQuantification (and assert elsewhere purposes)
+  - 
+
+
+- quantify payload
+  - instruction address (and endQuantify instruction)
+
+- pair of registers
+- register and integer immediate
+- scalar
+  - caseInsensitive
+  - boundaryCheck
+  - value
+- position register
+- int register
+- distance
+  - isScalar
+  - value
+- isScalar
+- bool register
+- element
+  - isCaseInsensitive
+  - value
+- asciiBitset
+  - isScalar
+  - TODO: isInverted
+- consumer fun register
+- instruction address
+- capture register
+  - isScalar
+  - value
+- Immediate value, int register
+- Address, int register    
+- Address, Address
+- Instruction, Position
+- Cap, transform
+
+- character class payload
+- quantify payload
+- assertion payload
+
+
+
+*/
+
 extension Instruction.Payload {
   private init(_ r: UInt64) {
     self.init(rawValue: r)
@@ -197,20 +261,6 @@ extension Instruction.Payload {
     interpretPair()
   }
 
-  init(immediate: UInt64, bool: BoolRegister) {
-    self.init(immediate, bool)
-  }
-  var pairedImmediateBool: (UInt64, BoolRegister) {
-    interpretPair()
-  }
-
-  init(addr: InstructionAddress, bool: BoolRegister) {
-    self.init(addr, bool)
-  }
-  var pairedAddrBool: (InstructionAddress, BoolRegister) {
-    interpretPair()
-  }
-
   init(addr: InstructionAddress, int: IntRegister) {
     self.init(addr, int)
   }
@@ -222,20 +272,6 @@ extension Instruction.Payload {
     self.init(addr, addr2)
   }
   var pairedAddrAddr: (InstructionAddress, InstructionAddress) {
-    interpretPair()
-  }
-
-  init(bool: BoolRegister, int: IntRegister) {
-    self.init(bool, int)
-  }
-  var pairedBoolInt: (BoolRegister, IntRegister) {
-    interpretPair()
-  }
-
-  init(element: ElementRegister, bool: BoolRegister) {
-    self.init(element, bool)
-  }
-  var pairedElementBool: (ElementRegister, BoolRegister) {
     interpretPair()
   }
 
@@ -304,10 +340,10 @@ extension Instruction.Payload {
 struct QuantifyPayload: RawRepresentable {
   let rawValue: UInt64
   enum PayloadType: UInt64 {
-    case bitset = 0
+    case asciiBitset = 0
     case asciiChar = 1
     case any = 2
-    case builtin = 4
+    case builtinCC = 4
   }
 
   // TODO: figure out how to better organize this...
@@ -374,7 +410,7 @@ struct QuantifyPayload: RawRepresentable {
   ) {
     assert(bitset.bits <= _payloadMask)
     self.rawValue = bitset.bits
-      + QuantifyPayload.packInfoValues(kind, minTrips, maxExtraTrips, .bitset, isScalarSemantics: isScalarSemantics)
+      + QuantifyPayload.packInfoValues(kind, minTrips, maxExtraTrips, .asciiBitset, isScalarSemantics: isScalarSemantics)
   }
 
   init(
@@ -411,7 +447,7 @@ struct QuantifyPayload: RawRepresentable {
       + (model.isInverted ? 1 << 9 : 0)
       + (model.isStrictASCII ? 1 << 10 : 0)
     self.rawValue = packedModel
-      + QuantifyPayload.packInfoValues(kind, minTrips, maxExtraTrips, .builtin, isScalarSemantics: isScalarSemantics)
+      + QuantifyPayload.packInfoValues(kind, minTrips, maxExtraTrips, .builtinCC, isScalarSemantics: isScalarSemantics)
   }
 
   var type: PayloadType {
@@ -446,25 +482,31 @@ struct QuantifyPayload: RawRepresentable {
   }
 
   var bitset: AsciiBitsetRegister {
-    TypedInt(self.rawValue & payloadMask)
+    assert(type == .asciiBitset)
+    return TypedInt(self.rawValue & payloadMask)
   }
 
   var asciiChar: UInt8 {
-    UInt8(asserting: self.rawValue & payloadMask)
+    assert(type == .asciiChar)
+    return UInt8(asserting: self.rawValue & payloadMask)
   }
 
   var anyMatchesNewline: Bool {
-    (self.rawValue & 1) == 1
+    assert(type == .any)
+    return (self.rawValue & 1) == 1
   }
 
   var builtin: _CharacterClassModel.Representation {
-    _CharacterClassModel.Representation(rawValue: self.rawValue & 0xFF)!
+    assert(type == .builtinCC)
+    return _CharacterClassModel.Representation(rawValue: self.rawValue & 0xFF)!
   }
   var builtinIsInverted: Bool {
-    (self.rawValue >> 9) & 1 == 1
+    assert(type == .builtinCC)
+    return (self.rawValue >> 9) & 1 == 1
   }
   var builtinIsStrict: Bool {
-    (self.rawValue >> 10) & 1 == 1
+    assert(type == .builtinCC)
+    return (self.rawValue >> 10) & 1 == 1
   }
 }
 

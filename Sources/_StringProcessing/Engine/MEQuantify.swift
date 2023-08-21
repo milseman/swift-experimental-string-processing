@@ -3,7 +3,7 @@ extension Processor {
     let isScalarSemantics = payload.isScalarSemantics
 
     switch payload.type {
-    case .bitset:
+    case .asciiBitset:
       return input.matchBitset(
         registers[payload.bitset],
         at: currentPosition,
@@ -16,7 +16,7 @@ extension Processor {
         limitedBy: end,
         boundaryCheck: !isScalarSemantics,
         isCaseInsensitive: false)
-    case .builtin:
+    case .builtinCC:
       guard currentPosition < end else { return nil }
 
       // We only emit .quantify if it consumes a single character
