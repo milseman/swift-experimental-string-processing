@@ -45,7 +45,6 @@ extension Instruction.Payload {
     case string(StringRegister)
     case sequence(SequenceRegister)
     case position(PositionRegister)
-    case optionalString(StringRegister?)
     case int(IntRegister)
     case distance(Distance)
     case bool(BoolRegister)
@@ -71,23 +70,11 @@ extension Instruction.Payload {
 // MARK: - Payload getters
 
 extension Instruction.Payload {
-  /// A `nil` payload, for e.g. StringRegister?
-  static var nilPayload: Self {
-    self.init(rawValue: _payloadMask)
-  }
-
   private init(_ r: UInt64) {
     self.init(rawValue: r)
   }
   private init<👻>(_ r: TypedInt<👻>) {
     self.init(r.bits)
-  }
-  private init<👻>(_ r: TypedInt<👻>?) {
-    if let r = r {
-      self.init(r)
-    } else {
-      self = .nilPayload
-    }
   }
 
   // Two values packed together
@@ -172,13 +159,6 @@ extension Instruction.Payload {
     self.init(sequence)
   }
   var sequence: SequenceRegister {
-    interpret()
-  }
-
-  init(optionalString: StringRegister?) {
-    self.init(optionalString)
-  }
-  var optionalString: StringRegister? {
     interpret()
   }
 
