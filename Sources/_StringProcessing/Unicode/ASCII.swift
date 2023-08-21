@@ -29,6 +29,21 @@ private var _A: UInt8 { 0x41 }
 private var _Z: UInt8 { 0x5A }
 
 extension UInt8 {
+  /// If this is a cased ASCII value, returns the value in the other case.
+  ///
+  /// Example:
+  ///     _a._asciiCaseSwapped == _A
+  ///
+  var _asciiCaseSwapped: UInt8? {
+    switch val {
+      case _A..._Z: return self + 32
+      case _a..._z: return self - 32
+      default: return nil
+    }
+  }
+}
+
+extension UInt8 {
   var _isASCII: Bool { self < 0x80 }
 
   // TODO: Bitvectors for the below

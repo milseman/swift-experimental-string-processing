@@ -106,12 +106,13 @@ extension Instruction {
 
     /// Match a character or a scalar against a set of valid ascii values stored in a bitset
     ///
-    ///     matchBitset(_: AsciiBitsetRegister, isScalar: Bool)
+    ///     matchASCIIBitset(_: AsciiBitsetRegister, isScalar: Bool, isInverted: Bool)
     ///
     /// Operand:
     ///  - Ascii bitset register containing the bitset
     ///  - Boolean for if we should match by scalar value
-    case matchBitset
+    ///  - Boolean for if semantics of a match should be inverted 
+    case matchASCIIBitset
 
     /// Match against a built-in character class
     ///

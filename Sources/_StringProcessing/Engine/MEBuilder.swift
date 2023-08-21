@@ -178,19 +178,18 @@ extension MEProgram.Builder {
 
 
   mutating func buildMatchAsciiBitset(
-    _ b: DSLTree.CustomCharacterClass.AsciiBitset
+    _ b: _AsciiBitset, 
+    isScalarSemantics: Bool,
+    isInverted: Bool
   ) {
     instructions.append(.init(
-      .matchBitset, .init(bitset: makeAsciiBitset(b), isScalar: false)))
+      .matchBitset,
+      .init(
+        bitset: makeAsciiBitset(b),
+        isScalar: isScalarSemantics,
+        isInverted: isInverted)))
   }
 
-  mutating func buildScalarMatchAsciiBitset(
-    _ b: DSLTree.CustomCharacterClass.AsciiBitset
-  ) {
-    instructions.append(.init(
-      .matchBitset, .init(bitset: makeAsciiBitset(b), isScalar: true)))
-  }
-  
   mutating func buildMatchBuiltin(model: _CharacterClassModel) {
     instructions.append(.init(
       .matchBuiltin, .init(model)))
@@ -226,11 +225,17 @@ extension MEProgram.Builder {
     _ kind: AST.Quantification.Kind,
     _ minTrips: Int,
     _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
+    isScalarSemantics: Bool,
+    isInverted: Bool
   ) {
     instructions.append(.init(
       .quantify,
-      .init(quantify: .init(bitset: makeAsciiBitset(bitset), kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
+      .init(quantify: .init(
+        bitset: makeAsciiBitset(bitset),
+        kind, minTrips,
+        maxExtraTrips,
+        isScalarSemantics: isScalarSemantics,
+        isInverted: isInverted))))
   }
 
   mutating func buildQuantify(

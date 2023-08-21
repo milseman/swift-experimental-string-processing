@@ -681,7 +681,12 @@ fileprivate extension Compiler.ByteCodeGen {
       guard let bitset = ccc.asAsciiBitset(options) else {
         return false
       }
-      builder.buildQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
+      builder.buildQuantify(
+        bitset: bitset,
+        kind, minTrips,
+        maxExtraTrips,
+        isScalarSemantics: isScalarSemantics,
+        isInverted: ccc.isInverted)
 
     case .atom(let atom):
       switch atom {
@@ -690,7 +695,12 @@ fileprivate extension Compiler.ByteCodeGen {
         guard let val = c._singleScalarAsciiValue else {
           return false
         }
-        builder.buildQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
+        builder.buildQuantify(
+          asciiChar: val,
+          kind, minTrips,
+          maxExtraTrips,
+          isScalarSemantics: isScalarSemantics,
+          isInverted: false)
 
       case .any:
         builder.buildQuantifyAny(

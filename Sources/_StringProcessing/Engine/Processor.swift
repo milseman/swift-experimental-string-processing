@@ -749,7 +749,7 @@ extension String {
     let isInverted = bitset.isInverted
 
     // TODO: Want something more specialized, so overhaul/refactor _quickASCIICharacter
-    guard let (byte, next, isCRLF) = _quickASCIICharacter(at: pos) else {
+    guard let (byte, next, isCRLF) = _quickASCIICharacter(at: pos, limitedBy: end) else {
       // FIXME: what if following index is beyond end?
       if isScalarSemantics {
         return bitset.matches(self.unicodeScalars[pos]) ? self.unicodeScalars.index(after: pos) : nil

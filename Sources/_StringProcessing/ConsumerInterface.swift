@@ -329,35 +329,6 @@ extension AST.Atom {
 }
 
 extension DSLTree.CustomCharacterClass.Member {
-  func asAsciiBitset(
-    _ opts: MatchingOptions,
-    _ isInverted: Bool
-  ) -> DSLTree.CustomCharacterClass.AsciiBitset? {
-    typealias Bitset = DSLTree.CustomCharacterClass.AsciiBitset
-    switch self {
-    case let .atom(a):
-      if let val = a.singleScalarASCIIValue {
-        return Bitset(val, isInverted, opts.isCaseInsensitive)
-      }
-    case let .range(low, high):
-      if let lowVal = low.singleScalarASCIIValue,
-         let highVal = high.singleScalarASCIIValue {
-        return Bitset(low: lowVal, high: highVal, isInverted: isInverted,
-                      isCaseInsensitive: opts.isCaseInsensitive)
-      }
-    case .quotedLiteral(let str):
-      var bitset = Bitset(isInverted: isInverted)
-      for c in str {
-        guard let ascii = c._singleScalarAsciiValue else { return nil }
-        bitset = bitset.union(Bitset(ascii, isInverted, opts.isCaseInsensitive))
-      }
-      return bitset
-    default:
-      return nil
-    }
-    return nil
-  }
-  
   func generateConsumer(
     _ opts: MatchingOptions
   ) throws -> MEProgram.ConsumeFunction {
@@ -491,19 +462,6 @@ extension DSLTree.CustomCharacterClass.Member {
 }
 
 extension DSLTree.CustomCharacterClass {
-  func asAsciiBitset(_ opts: MatchingOptions) -> AsciiBitset? {
-    return members.reduce(
-      .init(isInverted: isInverted),
-      {result, member in
-        if let next = member.asAsciiBitset(opts, isInverted) {
-          return result?.union(next)
-        } else {
-          return nil
-        }
-      }
-    )
-  }
-  
   func generateConsumer(
     _ opts: MatchingOptions
   ) throws -> MEProgram.ConsumeFunction {

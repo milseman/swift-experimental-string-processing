@@ -27,6 +27,11 @@ extension Instruction {
   }
 }
 
+
+// TODO: Clean up bit-packing code by coming up with a few standard forms
+//
+// E.g., a 48-bit payload form with 8 flag bits available
+
 extension Instruction.Payload {
   // For modeling, perhaps tooling, but likely not for
   // execution
@@ -51,7 +56,7 @@ extension Instruction.Payload {
     case bool(BoolRegister)
     case element(ElementRegister)
     case consumer(ConsumeFunctionRegister)
-    case bitset(AsciiBitsetRegister)
+    case asciiBitset(AsciiBitsetRegister)
     case addr(InstructionAddress)
     case capture(CaptureRegister)
 
@@ -226,7 +231,23 @@ extension Instruction.Payload {
     return (isCaseInsensitive: pair.0 == 1, pair.1)
   }
 
-  init(bitset: AsciiBitsetRegister, isScalar: Bool) {
+  init(asciiBitset reg: AsciiBitsetRegister, isScalar: Bool, isInverted: Bool) {
+    assert(reg.rawValue < (1 << 54))
+    let raw = reg.rawValue
+      + (isScalar ? 1 << 55: 0)
+      + (isInverted ? 1 << 54 : 0)
+    self.init(raw)
+  }
+  var asciiBitsetPayload: (AsciiBitsetRegister, isScalar: Bool, isInverted: Bool) {
+    let isScalar = (self.rawValue >> 55) & 1 == 1
+    let isInverted = (self.rawValue >> 54) & 1 == 1
+    let reg = self.rawValue & ((1 << 54) - 1)
+    let scalar = Unicode.Scalar(_value: UInt32(self.rawValue & 0xFFFF_FFFF))
+    return (scalar, caseInsensitive: caseInsensitive, boundaryCheck: boundaryCheck)
+  }
+
+
+  init(asciiBitset: AsciiBitsetRegister, isScalar: Bool, isInverted: Bool) {
     self.init(isScalar ? 1 : 0, bitset)
   }
   var bitsetPayload: (isScalar: Bool, AsciiBitsetRegister) {
@@ -400,6 +421,7 @@ struct QuantifyPayload: RawRepresentable {
   static var minTripsShift: UInt64    { 27 }
   static var typeShift: UInt64        { 35 }
   static var maxStorableTrips: UInt64 { (1 << 8) - 1 }
+  static var isScalarSemanticsBit: UInt64 { 1 &<< 38 }
   static var isScalarSemanticsBit: UInt64 { 1 &<< 38 }
 
   var quantKindMask: UInt64  { 3 }
