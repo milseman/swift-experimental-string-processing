@@ -24,11 +24,6 @@ extension Processor {
     // Verbatim elements to compare against
     var elements: [Element]
 
-    // Verbatim sequences to compare against
-    //
-    // TODO: Degenericize Processor and store Strings
-    var sequences: [[Element]] = []
-    
     var bitsets: [DSLTree.CustomCharacterClass.AsciiBitset]
 
     var consumeFunctions: [MEProgram.ConsumeFunction]
@@ -140,21 +135,13 @@ extension MutableCollection {
 extension MEProgram {
   struct RegisterInfo {
     var elements = 0
-    var sequences = 0
-    var bools = 0
-    var strings = 0
     var bitsets = 0
     var consumeFunctions = 0
     var transformFunctions = 0
     var matcherFunctions = 0
     var ints = 0
-    var floats = 0
     var positions = 0
     var values = 0
-    var instructionAddresses = 0
-    var classStackAddresses = 0
-    var positionStackAddresses = 0
-    var savePointAddresses = 0
     var captures = 0
   }
 }
