@@ -25,7 +25,7 @@ struct Controller {
   }
 }
 
-struct Processor {
+struct Processor: ~Escapable {
   typealias Input = String
   typealias Element = Input.Element
 
@@ -87,25 +87,17 @@ struct Processor {
   var failureReason: Error? = nil
 
   var metrics: ProcessorMetrics
-}
 
-extension Processor {
-  typealias Position = Input.Index
-
-  var start: Position { searchBounds.lowerBound }
-  var end: Position { searchBounds.upperBound }
-}
-
-extension Processor {
-  init(
+  init<Owner: ~Copyable & ~Escapable>(
     program: MEProgram,
     input: Input,
     subjectBounds: Range<Position>,
     searchBounds: Range<Position>,
     matchMode: MatchMode,
     isTracingEnabled: Bool,
-    shouldMeasureMetrics: Bool
-  ) {
+    shouldMeasureMetrics: Bool,
+    owner: borrowing Owner
+  ) -> dependsOn(owner) Self {
     self.controller = Controller(pc: 0)
     self.instructions = program.instructions
     self.input = input
@@ -126,6 +118,17 @@ extension Processor {
 
     _checkInvariants()
   }
+}
+
+extension Processor {
+  typealias Position = Input.Index
+
+  var start: Position { searchBounds.lowerBound }
+  var end: Position { searchBounds.upperBound }
+}
+
+extension Processor {
+
 
   mutating func reset(currentPosition: Position) {
     self.currentPosition = currentPosition

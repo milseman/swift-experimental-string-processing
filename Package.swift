@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -38,6 +38,7 @@ let publicStdlibSettings: [PackageDescription.SwiftSetting] = [
     .unsafeFlags(["-enable-library-evolution"]),
     .unsafeFlags(["-Xfrontend", "-disable-implicit-concurrency-module-import"]),
     .unsafeFlags(["-Xfrontend", "-disable-implicit-string-processing-module-import"]),
+    .enableExperimentalFeature("NonescapableTypes"),
     availabilityDefinition
 ]
 
