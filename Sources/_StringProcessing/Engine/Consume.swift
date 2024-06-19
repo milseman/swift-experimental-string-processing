@@ -22,7 +22,8 @@ extension Engine {
       searchBounds: bounds,
       matchMode: matchMode,
       isTracingEnabled: enableTracing,
-      shouldMeasureMetrics: enableMetrics)
+      shouldMeasureMetrics: enableMetrics,
+      owner: input)
   }
   
   func makeFirstMatchProcessor(
@@ -37,7 +38,8 @@ extension Engine {
       searchBounds: searchBounds,
       matchMode: .partialFromFront,
       isTracingEnabled: enableTracing,
-      shouldMeasureMetrics: enableMetrics)
+      shouldMeasureMetrics: enableMetrics,
+      owner: input)
   }
 }
 

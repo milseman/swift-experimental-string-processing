@@ -17,7 +17,7 @@ protocol InstructionProtocol {
   var operandPC: InstructionAddress? { get }
 }
 
-protocol ProcessorProtocol {
+protocol ProcessorProtocol: ~Escapable {
   associatedtype Input: Collection
   associatedtype Instruction: InstructionProtocol
   associatedtype SavePoint = ()

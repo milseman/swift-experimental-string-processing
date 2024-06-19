@@ -12,11 +12,11 @@
 
 // TODO: Place shared formatting and trace infrastructure here
 
-protocol Traced {
+protocol Traced: ~Escapable {
   var isTracingEnabled: Bool { get }
 }
 
-protocol TracedProcessor: ProcessorProtocol, Traced {
+protocol TracedProcessor: ~Escapable, ProcessorProtocol, Traced {
   // Empty defaulted
   func formatCallStack() -> String // empty default
   func formatSavePoints() -> String // empty default
@@ -45,7 +45,7 @@ extension TracedProcessor where Registers: Collection{
   }
 }
 
-extension TracedProcessor {
+extension TracedProcessor where Self: ~Escapable {
   func printTrace() { print(formatTrace()) }
 
   func trace() {
