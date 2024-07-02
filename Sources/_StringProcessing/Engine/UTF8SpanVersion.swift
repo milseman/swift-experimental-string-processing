@@ -1,14 +1,14 @@
 
 // MARK: - MEQuantify
 
-private typealias ASCIIBitset = DSLTree.CustomCharacterClass.AsciiBitset
+internal typealias ASCIIBitset = DSLTree.CustomCharacterClass.AsciiBitset
 extension UTF8Span {
   /// Run the quant loop, using the supplied matching closure
   ///
   /// NOTE: inline-always to help elimiate the closure overhead,
   /// simplify some of the looping structure, etc.
   @inline(__always)
-  fileprivate func _runQuantLoop(
+  internal func _runQuantLoop(
     at currentPosition: Index,
     limitedBy end: Index,
     minMatches: UInt64,
@@ -76,7 +76,7 @@ extension UTF8Span {
   // zero-or-more and 5% for one-or-more improvement, which could very well
   // be much higher if/when the inner match functions are made faster.
 
-  fileprivate func matchZeroOrMoreASCIIBitset(
+  internal func matchZeroOrMoreASCIIBitset(
     _ asciiBitset: ASCIIBitset,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -98,7 +98,7 @@ extension UTF8Span {
         isScalarSemantics: isScalarSemantics)
     }
   }
-  fileprivate func matchOneOrMoreASCIIBitset(
+  internal func matchOneOrMoreASCIIBitset(
     _ asciiBitset: ASCIIBitset,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -121,7 +121,7 @@ extension UTF8Span {
     }
   }
 
-  fileprivate func matchQuantifiedASCIIBitset(
+  internal func matchQuantifiedASCIIBitset(
     _ asciiBitset: ASCIIBitset,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -146,7 +146,7 @@ extension UTF8Span {
     }
   }
 
-  fileprivate func matchZeroOrMoreScalar(
+  internal func matchZeroOrMoreScalar(
     _ scalar: Unicode.Scalar,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -169,7 +169,7 @@ extension UTF8Span {
         isCaseInsensitive: false)
     }
   }
-  fileprivate func matchOneOrMoreScalar(
+  internal func matchOneOrMoreScalar(
     _ scalar: Unicode.Scalar,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -194,7 +194,7 @@ extension UTF8Span {
     }
   }
 
-  fileprivate func matchQuantifiedScalar(
+  internal func matchQuantifiedScalar(
     _ scalar: Unicode.Scalar,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -221,7 +221,7 @@ extension UTF8Span {
     }
   }
 
-  fileprivate func matchZeroOrMoreBuiltinCC(
+  internal func matchZeroOrMoreBuiltinCC(
     _ builtinCC: _CharacterClassModel.Representation,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -247,7 +247,7 @@ extension UTF8Span {
         isScalarSemantics: isScalarSemantics)
     }
   }
-  fileprivate func matchOneOrMoreBuiltinCC(
+  internal func matchOneOrMoreBuiltinCC(
     _ builtinCC: _CharacterClassModel.Representation,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -274,7 +274,7 @@ extension UTF8Span {
     }
   }
 
-  fileprivate func matchQuantifiedBuiltinCC(
+  internal func matchQuantifiedBuiltinCC(
     _ builtinCC: _CharacterClassModel.Representation,
     at currentPosition: Index,
     limitedBy end: Index,
@@ -303,7 +303,7 @@ extension UTF8Span {
     }
   }
 
-  fileprivate func matchZeroOrMoreRegexDot(
+  internal func matchZeroOrMoreRegexDot(
     at currentPosition: Index,
     limitedBy end: Index,
     produceSavePointRange: Bool,
@@ -325,7 +325,7 @@ extension UTF8Span {
         isScalarSemantics: isScalarSemantics)
     }
   }
-  fileprivate func matchOneOrMoreRegexDot(
+  internal func matchOneOrMoreRegexDot(
     at currentPosition: Index,
     limitedBy end: Index,
     produceSavePointRange: Bool,
@@ -348,7 +348,7 @@ extension UTF8Span {
     }
   }
 
-  fileprivate func matchQuantifiedRegexDot(
+  internal func matchQuantifiedRegexDot(
     at currentPosition: Index,
     limitedBy end: Index,
     minMatches: UInt64,
@@ -871,5 +871,4 @@ extension UTF8Span {
   }
 
 }
-
 

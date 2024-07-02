@@ -107,22 +107,26 @@ extension UTF8Span {
 
 // MARK: String
 
-//@_unavailableInEmbedded
-//extension String {
-//  // NOTE: If `self` is lazily bridged NSString, or is in a small-string
-//  // form, memory may be allocated...
-//  public var utf8Span: UTF8Span {
-//    _read {
-//      // TODO: avoid the allocation
-//      let arr = Array(self.utf8)
-//      let span = arr.storage
-//      yield UTF8Span(
-//        _unsafeAssumingValidUTF8: .init(span._start),
-//        _countAndFlags: UInt64(span.count), // TODO: set the flags
-//        owner: arr)
-//    }
-//  }
-//}
+@_unavailableInEmbedded
+extension String {
+  // NOTE: If `self` is lazily bridged NSString, or is in a small-string
+  // form, memory may be allocated...
+  public var utf8Span: UTF8Span {
+    _read {
+      // TODO: avoid the allocation
+      let arr = ContiguousArray(self.utf8)
+
+      // HACK HACK HACK
+      defer { _fixLifetime(arr) }
+      let ptr = arr.withUnsafeBytes { $0.baseAddress! }
+
+      yield UTF8Span(
+        _unsafeAssumingValidUTF8: ptr,
+        _countAndFlags: UInt64(arr.count), // TODO: set the flags
+        owner: arr)
+    }
+  }
+}
 
 extension UTF8Span {
   /// Calls a closure with a pointer to the viewed contiguous storage.

@@ -1,4 +1,4 @@
-private typealias ASCIIBitset = DSLTree.CustomCharacterClass.AsciiBitset
+//private typealias ASCIIBitset = DSLTree.CustomCharacterClass.AsciiBitset
 
 extension Processor {
   internal mutating func runQuantify(_ payload: QuantifyPayload) -> Bool {
@@ -136,6 +136,163 @@ extension Processor {
     }
     currentPosition = next
     return true
+  }
+
+  internal mutating func runQuantify_UTF8Span(_ payload: QuantifyPayload) -> Bool {
+    assert(payload.quantKind != .reluctant, ".reluctant is not supported by .quantify")
+
+    let minMatches = payload.minTrips
+    let maxMatches = payload.maxTrips
+    let produceSavePointRange = payload.quantKind == .eager
+    let isScalarSemantics = payload.isScalarSemantics
+
+    let isZeroOrMore = payload.minTrips == 0 && payload.maxExtraTrips == nil
+    let isOneOrMore = payload.minTrips == 1 && payload.maxExtraTrips == nil
+
+    let matchResult: (next: UTF8Span.Index, savePointRange: Range<UTF8Span.Index>?)?
+
+    let end = input.spanIndex(end)
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+
+      switch payload.type {
+      case .asciiBitset:
+        if isZeroOrMore {
+          matchResult = input.utf8Span.matchZeroOrMoreASCIIBitset(
+            registers[payload.bitset],
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            isScalarSemantics: isScalarSemantics)
+        } else if isOneOrMore {
+          matchResult = input.utf8Span.matchOneOrMoreASCIIBitset(
+            registers[payload.bitset],
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            isScalarSemantics: isScalarSemantics)
+        } else {
+          matchResult = input.utf8Span.matchQuantifiedASCIIBitset(
+            registers[payload.bitset],
+            at: currentPosition,
+            limitedBy: end,
+            minMatches: minMatches,
+            maxMatches: maxMatches,
+            produceSavePointRange: produceSavePointRange,
+            isScalarSemantics: isScalarSemantics)
+        }
+
+      case .asciiChar:
+        if isZeroOrMore {
+          matchResult = input.utf8Span.matchZeroOrMoreScalar(
+            Unicode.Scalar(payload.asciiChar),
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            isScalarSemantics: isScalarSemantics)
+        } else if isOneOrMore {
+          matchResult = input.utf8Span.matchOneOrMoreScalar(
+            Unicode.Scalar(payload.asciiChar),
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            isScalarSemantics: isScalarSemantics)
+        } else {
+          matchResult = input.utf8Span.matchQuantifiedScalar(
+            Unicode.Scalar(payload.asciiChar),
+            at: currentPosition,
+            limitedBy: end,
+            minMatches: minMatches,
+            maxMatches: maxMatches,
+            produceSavePointRange: produceSavePointRange,
+            isScalarSemantics: isScalarSemantics)
+        }
+
+      case .any:
+        if isZeroOrMore {
+          matchResult = input.utf8Span.matchZeroOrMoreRegexDot(
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            anyMatchesNewline: payload.anyMatchesNewline,
+            isScalarSemantics: isScalarSemantics)
+        } else if isOneOrMore {
+          matchResult = input.utf8Span.matchOneOrMoreRegexDot(
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            anyMatchesNewline: payload.anyMatchesNewline,
+            isScalarSemantics: isScalarSemantics)
+        } else {
+          matchResult = input.utf8Span.matchQuantifiedRegexDot(
+            at: currentPosition,
+            limitedBy: end,
+            minMatches: minMatches,
+            maxMatches: maxMatches,
+            produceSavePointRange: produceSavePointRange,
+            anyMatchesNewline: payload.anyMatchesNewline,
+            isScalarSemantics: isScalarSemantics)
+        }
+
+      case .builtinCC:
+        if isZeroOrMore {
+          matchResult = input.utf8Span.matchZeroOrMoreBuiltinCC(
+            payload.builtinCC,
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            isInverted: payload.builtinIsInverted,
+            isStrictASCII: payload.builtinIsStrict,
+            isScalarSemantics: isScalarSemantics)
+        } else if isOneOrMore {
+          matchResult = input.utf8Span.matchOneOrMoreBuiltinCC(
+            payload.builtinCC,
+            at: currentPosition,
+            limitedBy: end,
+            produceSavePointRange: produceSavePointRange,
+            isInverted: payload.builtinIsInverted,
+            isStrictASCII: payload.builtinIsStrict,
+            isScalarSemantics: isScalarSemantics)
+        } else {
+          matchResult = input.utf8Span.matchQuantifiedBuiltinCC(
+            payload.builtinCC,
+            at: currentPosition,
+            limitedBy: end,
+            minMatches: minMatches,
+            maxMatches: maxMatches,
+            produceSavePointRange: produceSavePointRange,
+            isInverted: payload.builtinIsInverted,
+            isStrictASCII: payload.builtinIsStrict,
+            isScalarSemantics: isScalarSemantics)
+        }
+      }
+    }
+
+    guard let (next, savePointRange) = matchResult else {
+      signalFailure()
+      return false
+    }
+    if let savePointRange {
+      let savePointRange = input.range(from: savePointRange)
+      assert(produceSavePointRange)
+      savePoints.append(makeQuantifiedSavePoint(
+        savePointRange, isScalarSemantics: payload.isScalarSemantics))
+    }
+    currentPosition = input.index(from: next)
+    return true
+  }
+}
+
+/// Conversion hacks
+extension String {
+  func spanIndex(_ i: Index) -> UTF8Span.Index {
+    utf8.distance(from: startIndex, to: i)
+  }
+  func index(from i: UTF8Span.Index) -> Index {
+    utf8.index(startIndex, offsetBy: i)
+  }
+  func range(from r: Range<UTF8Span.Index>) -> Range<Index> {
+    index(from: r.lowerBound) ..< index(from: r.upperBound)
   }
 }
 
