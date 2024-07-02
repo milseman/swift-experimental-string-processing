@@ -287,6 +287,9 @@ extension UTF8Span {
   public func isCharacterAligned(unchecked i: Int) -> Bool {
     if i == count || i == 0 { return true }
     _internalInvariant(boundsCheck(i))
+
+    print(unsafeBaseAddress)
+    print(self[i])
     return unsafeBaseAddress._isCharacterAligned(i, limitedBy: count)
   }
 

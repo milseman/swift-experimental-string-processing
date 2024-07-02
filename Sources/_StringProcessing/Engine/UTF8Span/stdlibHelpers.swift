@@ -101,7 +101,9 @@ extension UnsafeRawPointer {
   }
 
   internal func _str(_ range: Range<Int>) -> String {
-    String(decoding: _urbp(range) , as: UTF8.self)
+    let buffer = _urbp(range)
+    print(Array(buffer))
+    return String(decoding: buffer, as: UTF8.self)
   }
 
   @usableFromInline
@@ -109,7 +111,7 @@ extension UnsafeRawPointer {
     _ i: Int,
     limitedBy end: Int
   ) -> Bool {
-    _internalInvariant(i > 0)
+    _internalInvariant(i >= 0)
 
     // TODO: call internals instead
     let str = _str(0..<end)

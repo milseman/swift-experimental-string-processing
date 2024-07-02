@@ -256,7 +256,9 @@ extension UTF8Span {
     isStrictASCII: Bool,
     isScalarSemantics: Bool
   ) -> (next: Index, savePointRange: Range<Index>?)? {
-    _runQuantLoop(
+    print(self[currentPosition])
+
+    return _runQuantLoop(
       at: currentPosition,
       limitedBy: end,
       minMatches: 1,
@@ -536,9 +538,9 @@ extension UTF8Span {
   func characterAndEnd(at pos: Index, limitedBy end: Index) -> (Character, Index)? {
     // FIXME: Sink into the stdlib to avoid multiple boundary calculations
     guard pos < end else { return nil }
-    let next = index(after: pos)
+    let next = characters.index(after: pos)
     if next <= end {
-      return (self[character: pos], next)
+      return (characters[pos], next)
     }
 
     // `end` must be a sub-character position that is between `pos` and the
@@ -549,7 +551,7 @@ extension UTF8Span {
     let substr = self[pos..<end]
     return substr.isEmpty
       ? nil
-      : (substr.first!, substr.endIndex)
+    : (substr.characters.first!, substr.characters.endIndex)
   }
 
   func matchAnyNonNewline(
@@ -798,7 +800,7 @@ extension UTF8Span {
     }
     let base = utf8[idx]
     guard base._isASCII else {
-      assert(!self[character: idx].isASCII)
+      assert(!characters[idx].isASCII)
       return nil
     }
 
@@ -819,7 +821,7 @@ extension UTF8Span {
       return (first: base, next: next, crLF: true)
     }
 
-    assert(self[character: idx].isASCII && self[character: idx] != "\r\n")
+    assert(characters[idx].isASCII && characters[idx] != "\r\n")
     return (first: base, next: next, crLF: false)
   }
 

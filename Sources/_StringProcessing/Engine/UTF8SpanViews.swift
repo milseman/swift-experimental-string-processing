@@ -262,23 +262,24 @@ extension UTF8Span.CharacterView {
   //
   // Note: Wrapper struct, but with public access, so that
   // it's not used across views accidentally
-  @frozen
-  public struct Index: Comparable, Hashable {
-    public var position: Int
-
-    @inlinable @inline(__always)
-    public init(_ position: Int) {
-      self.position = position
-    }
-
-    @inlinable @inline(__always)
-    public static func < (
-      lhs: UTF8Span.CharacterView.Index,
-      rhs: UTF8Span.CharacterView.Index
-    ) -> Bool {
-      lhs.position < rhs.position
-    }
-  }
+//  @frozen
+//  public struct Index: Comparable, Hashable {
+//    public var position: Int
+//
+//    @inlinable @inline(__always)
+//    public init(_ position: Int) {
+//      self.position = position
+//    }
+//
+//    @inlinable @inline(__always)
+//    public static func < (
+//      lhs: UTF8Span.CharacterView.Index,
+//      rhs: UTF8Span.CharacterView.Index
+//    ) -> Bool {
+//      lhs.position < rhs.position
+//    }
+//  }
+  public typealias Index = Int
 
   public typealias Element = Character
 
@@ -323,80 +324,34 @@ extension UTF8Span.CharacterView {
 
   @inlinable
   public func index(after i: Index) -> Index {
-    .init(span.nextCharacterStart(i.position))
+    .init(span.nextCharacterStart(i))
   }
 
   @inlinable
   public func index(before i: Index) -> Index {
-    .init(span.previousCharacterStart(i.position))
+    .init(span.previousCharacterStart(i))
   }
-
-#if false
-  @inlinable
-  public func index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
-  ) -> Index? {
-    fatalError()
-  }
-
-  @inlinable
-  public func formIndex(after i: inout Index) {
-    fatalError()
-  }
-
-  @inlinable
-  public func formIndex(before i: inout Index) {
-    fatalError()
-  }
-
-  @inlinable
-  public func index(_ i: Index, offsetBy distance: Int) -> Index {
-    fatalError()
-  }
-
-  @inlinable
-  public func formIndex(_ i: inout Index, offsetBy distance: Int) {
-    fatalError()
-  }
-
-  @inlinable
-  public func formIndex(
-    _ i: inout Index, offsetBy distance: Int, limitedBy limit: Index
-  ) -> Bool {
-    fatalError()
-  }
-
-#endif
 
   @inlinable
   public subscript(_ i: Index) -> Element {
     borrowing _read {
-      yield span.decodeNextCharacter(i.position).0
+      yield span.decodeNextCharacter(i).0
     }
   }
 
+  var isEmpty: Bool {
+    startIndex == endIndex
+  }
+
+  var first: Character? {
+    if isEmpty { return nil }
+    return self[startIndex]
+  }
 }
 
 extension UTF8Span {
   public func isOnGraphemeClusterBoundary(_ i: Index) -> Bool {
     isCharacterAligned(i)
-  }
-
-  @inlinable
-  public func index(after i: Index) -> Index {
-    .init(nextCharacterStart(i))
-  }
-
-  @inlinable
-  public func index(before i: Index) -> Index {
-    .init(previousCharacterStart(i))
-  }
-
-  @inlinable
-  public subscript(character i: Index) -> Character {
-    borrowing _read {
-      yield decodeNextCharacter(i).0
-    }
   }
 
   @inlinable
@@ -412,22 +367,32 @@ extension UTF8Span {
     if isScalarSemantics {
       return unicodeScalars.index(after: idx)
     } else {
-      return index(after: idx)
+      return characters.index(after: idx)
     }
   }
+//
+//  var first: Character? {
+//    if isEmpty { return nil }
+//    return decodeNextCharacter(0).0
+//  }
+//
+//  var endIndex: Index {
+//    count
+//  }
+//
 
-  var first: Character? {
-    if isEmpty { return nil }
-    return decodeNextCharacter(0).0
-  }
-
-  var endIndex: Index {
-    count
-  }
-
+  // TODO: cleaner to make a proper UTF8View...
   @inlinable
   func formIndex(after i: inout Index) {
-    i = index(after: i)
+    i += 1
+  }
+  @inlinable
+  func index(after i: Index) -> Index {
+    i+1
+  }
+  @inlinable
+  func index(before i: Index) -> Index {
+    i-1
   }
 
 

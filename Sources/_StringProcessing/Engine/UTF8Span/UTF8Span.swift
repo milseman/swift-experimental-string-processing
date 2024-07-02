@@ -118,7 +118,7 @@ extension String {
 
       // HACK HACK HACK
       defer { _fixLifetime(arr) }
-      let ptr = arr.withUnsafeBytes { $0.baseAddress! }
+      let ptr = arr._baseAddressIfContiguous!
 
       yield UTF8Span(
         _unsafeAssumingValidUTF8: ptr,

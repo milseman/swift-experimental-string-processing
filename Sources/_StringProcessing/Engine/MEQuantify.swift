@@ -2,6 +2,8 @@
 
 extension Processor {
   internal mutating func runQuantify(_ payload: QuantifyPayload) -> Bool {
+    return runQuantify_UTF8Span(payload)
+#if false
     assert(payload.quantKind != .reluctant, ".reluctant is not supported by .quantify")
 
     let minMatches = payload.minTrips
@@ -136,6 +138,7 @@ extension Processor {
     }
     currentPosition = next
     return true
+#endif
   }
 
   internal mutating func runQuantify_UTF8Span(_ payload: QuantifyPayload) -> Bool {
