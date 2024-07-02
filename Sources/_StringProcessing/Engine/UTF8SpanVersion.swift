@@ -3,9 +3,6 @@
 
 private typealias ASCIIBitset = DSLTree.CustomCharacterClass.AsciiBitset
 extension UTF8Span {
-  // TODO: remove
-  internal typealias Index = Int
-
   /// Run the quant loop, using the supplied matching closure
   ///
   /// NOTE: inline-always to help elimiate the closure overhead,
@@ -541,7 +538,7 @@ extension UTF8Span {
     guard pos < end else { return nil }
     let next = index(after: pos)
     if next <= end {
-      return (self[pos], next)
+      return (self[character: pos], next)
     }
 
     // `end` must be a sub-character position that is between `pos` and the
@@ -793,7 +790,7 @@ extension UTF8Span {
     limitedBy end: Index
   ) -> (first: UInt8, next: Index, crLF: Bool)? {
     // TODO: fastUTF8 version
-    assert(String.Index(idx, within: unicodeScalars) != nil)
+//    assert(String.Index(idx, within: unicodeScalars) != nil)
     assert(idx <= end)
 
     if idx == end {
@@ -801,7 +798,7 @@ extension UTF8Span {
     }
     let base = utf8[idx]
     guard base._isASCII else {
-      assert(!self[idx].isASCII)
+      assert(!self[character: idx].isASCII)
       return nil
     }
 
@@ -822,7 +819,7 @@ extension UTF8Span {
       return (first: base, next: next, crLF: true)
     }
 
-    assert(self[idx].isASCII && self[idx] != "\r\n")
+    assert(self[character: idx].isASCII && self[character: idx] != "\r\n")
     return (first: base, next: next, crLF: false)
   }
 
