@@ -256,7 +256,10 @@ extension UTF8Span {
     isStrictASCII: Bool,
     isScalarSemantics: Bool
   ) -> (next: Index, savePointRange: Range<Index>?)? {
-    print(self[currentPosition])
+    if !self.isEmpty {
+      print("base address: \(self.unsafeBaseAddress)")
+      print("UTF8Span: \(self[0])")
+    }
 
     return _runQuantLoop(
       at: currentPosition,

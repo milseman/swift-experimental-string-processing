@@ -114,16 +114,20 @@ extension String {
   public var utf8Span: UTF8Span {
     _read {
       // TODO: avoid the allocation
-      let arr = ContiguousArray(self.utf8)
-
-      // HACK HACK HACK
-      defer { _fixLifetime(arr) }
-      let ptr = arr._baseAddressIfContiguous!
-
-      yield UTF8Span(
-        _unsafeAssumingValidUTF8: ptr,
-        _countAndFlags: UInt64(arr.count), // TODO: set the flags
+      let arr = Array(self.utf8)
+      let span = arr.storage
+      let utf8Span = UTF8Span(
+        _unsafeAssumingValidUTF8: .init(span._start),
+        _countAndFlags: UInt64(span.count), // TODO: set the flags
         owner: arr)
+
+      if !utf8Span.isEmpty {
+        print("base address: \(utf8Span.unsafeBaseAddress)")
+        print("Array: \(arr[0]), UTF8Span: \(utf8Span[0])")
+        print()
+      }
+
+      yield utf8Span
     }
   }
 }
