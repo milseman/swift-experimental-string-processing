@@ -38,7 +38,9 @@ let publicStdlibSettings: [PackageDescription.SwiftSetting] = [
     .unsafeFlags(["-enable-library-evolution"]),
     .unsafeFlags(["-Xfrontend", "-disable-implicit-concurrency-module-import"]),
     .unsafeFlags(["-Xfrontend", "-disable-implicit-string-processing-module-import"]),
+    .unsafeFlags(["-Xfrontend", "-disable-large-loadable-types-reg2mem"]),
     .enableExperimentalFeature("NonescapableTypes"),
+    .enableExperimentalFeature("SuppressedAssociatedTypes"),
     availabilityDefinition
 ]
 
