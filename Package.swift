@@ -41,6 +41,7 @@ let publicStdlibSettings: [PackageDescription.SwiftSetting] = [
     .unsafeFlags(["-Xfrontend", "-disable-large-loadable-types-reg2mem"]),
     .enableExperimentalFeature("NonescapableTypes"),
     .enableExperimentalFeature("SuppressedAssociatedTypes"),
+    .enableExperimentalFeature("BuiltinModule"),
     availabilityDefinition
 ]
 

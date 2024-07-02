@@ -17,27 +17,27 @@
 
 */
 
-func _internalInvariant(
-  _ b: @autoclosure () -> Bool, _ s: String = ""
-) {
-  assert(b(), s)
-}
-
-extension Optional {
-  internal var _unsafelyUnwrappedUnchecked: Wrapped {
-    self.unsafelyUnwrapped
-  }
-
-  internal mutating func _take() -> Wrapped? {
-    switch self {
-    case .some(let thing):
-      self = nil
-      return thing
-    case .none:
-      return nil
-    }
-  }
-}
+//func _internalInvariant(
+//  _ b: @autoclosure () -> Bool, _ s: String = ""
+//) {
+//  assert(b(), s)
+//}
+//
+//extension Optional {
+//  internal var _unsafelyUnwrappedUnchecked: Wrapped {
+//    self.unsafelyUnwrapped
+//  }
+//
+//  internal mutating func _take() -> Wrapped? {
+//    switch self {
+//    case .some(let thing):
+//      self = nil
+//      return thing
+//    case .none:
+//      return nil
+//    }
+//  }
+//}
 
 // Don't use UnsafeRawBufferPointer for anything important
 struct UnsafeByteBuffer {
@@ -65,9 +65,9 @@ extension UnsafeBufferPointer where Element == UInt8 {
 }
 
 extension Unicode.Scalar {
-  init(_unchecked v: UInt32) {
-    self.init(v)!
-  }
+//  init(_unchecked v: UInt32) {
+//    self.init(v)!
+//  }
 
   init(_value v: UInt32) {
     self = unsafeBitCast(v, to: Self.self)
