@@ -50,6 +50,9 @@ enum DecodedInstr {
   case transformCapture
   case captureValue
   case quantify
+  case reverse
+  case reverseMatch
+  case reverseMatchScalar
 }
 
 extension DecodedInstr {
@@ -141,6 +144,12 @@ extension DecodedInstr {
       return .captureValue
     case .matchBuiltin:
       return .matchBuiltin
+    case .reverse:
+      return .reverse
+    case .reverseMatch:
+      return .reverseMatch
+    case .reverseMatchScalar:
+      return .reverseMatchScalar
     }
   }
 }

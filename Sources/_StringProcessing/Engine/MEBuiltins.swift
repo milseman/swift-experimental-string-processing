@@ -160,7 +160,46 @@ extension String {
       ? nil
       : (substr.first!, substr.endIndex)
   }
-  
+
+  /// Returns the character at `pos`, bounded by `start`, as well as the upper
+  /// boundary of the returned character.
+  ///
+  /// This function handles loading a character from a string while respecting
+  /// an end boundary, even if that end boundary is sub-character or sub-scalar.
+  ///
+  ///   - If `pos` is at or past `end`, this function returns `nil`.
+  ///   - If `end` is between `pos` and the next grapheme cluster boundary (i.e.,
+  ///     `end` is before `self.index(after: pos)`, then the returned character
+  ///     is smaller than the one that would be produced by `self[pos]` and the
+  ///     returned index is at the end of that character.
+  ///   - If `end` is between `pos` and the next grapheme cluster boundary, and
+  ///     is not on a Unicode scalar boundary, the partial scalar is dropped. This
+  ///     can result in a `nil` return or a character that includes only part of
+  ///     the `self[pos]` character.
+  ///
+  /// - Parameters:
+  ///   - pos: The position to load a character from.
+  ///   - end: The limit for the character at `pos`.
+  /// - Returns: The character at `pos`, bounded by `end`, if it exists, along
+  ///   with the upper bound of that character. The upper bound is always
+  ///   scalar-aligned.
+  func characterAndStart(at pos: String.Index, limitedBy start: String.Index) -> (Character, String.Index)? {
+    // FIXME: Sink into the stdlib to avoid multiple boundary calculations
+    guard pos > start else { return nil }
+    let next = index(before: pos)
+    if next >= start {
+      return (self[pos], next)
+    }
+
+    // `end` must be a sub-character position that is between `pos` and the
+    // next grapheme boundary. This is okay if `end` is on a Unicode scalar
+    // boundary, but if it's in the middle of a scalar's code units, there
+    // may not be a character to return at all after rounding down. Use
+    // `Substring`'s rounding to determine what we can return.
+    let substr = self[start..<pos]
+    return substr.isEmpty ? nil : (substr.first!, substr.startIndex)
+  }
+
   func matchAnyNonNewline(
     at currentPosition: String.Index,
     limitedBy end: String.Index,

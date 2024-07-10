@@ -16,6 +16,7 @@ import Swift
 
 extension Compiler {
   struct ByteCodeGen {
+    var reverse = false
     var options: MatchingOptions
     var builder = MEProgram.Builder()
     /// A Boolean indicating whether the first matchable atom has been emitted.
@@ -135,6 +136,36 @@ fileprivate extension Compiler.ByteCodeGen {
     for c in s { emitCharacter(c) }
   }
 
+  mutating func emitReverseQuotedLiteral(_ s: String) {
+    guard options.semanticLevel == .graphemeCluster else {
+      for char in s {
+        for scalar in char.unicodeScalars.reversed() {
+          emitMatchScalar(scalar)
+        }
+      }
+      return
+    }
+
+    // Fast path for eliding boundary checks for an all ascii quoted literal
+    if optimizationsEnabled && s.allSatisfy(\.isASCII) && !s.isEmpty {
+      builder.buildReverseUnicodeScalar(1)
+      let lastIdx = s.unicodeScalars.indices.first!
+      for idx in s.unicodeScalars.indices.reversed() {
+        let boundaryCheck = idx == lastIdx
+        let scalar = s.unicodeScalars[idx]
+        if options.isCaseInsensitive && scalar.properties.isCased {
+          builder.buildReverseMatchScalarCaseInsensitive(scalar, boundaryCheck: boundaryCheck)
+        } else {
+          builder.buildReverseMatchScalar(scalar, boundaryCheck: boundaryCheck)
+        }
+      }
+      return
+    }
+
+    builder.buildReverse(1)
+    for c in s.reversed() { emitCharacter(c) }
+  }
+
   mutating func emitBackreference(
     _ ref: AST.Reference
   ) throws {
@@ -189,12 +220,26 @@ fileprivate extension Compiler.ByteCodeGen {
       builder.buildMatchScalar(s, boundaryCheck: false)
     }
   }
-  
+
+  mutating func emitReverseMatchScalar(_ s: UnicodeScalar) {
+    assert(options.semanticLevel == .unicodeScalar)
+    builder.buildReverseUnicodeScalar(1)
+    if options.isCaseInsensitive && s.properties.isCased {
+      builder.buildReverseMatchScalarCaseInsensitive(s, boundaryCheck: false)
+    } else {
+      builder.buildReverseMatchScalar(s, boundaryCheck: false)
+    }
+  }
+
   mutating func emitCharacter(_ c: Character) {
     // Unicode scalar mode matches the specific scalars that comprise a character
     if options.semanticLevel == .unicodeScalar {
       for scalar in c.unicodeScalars {
-        emitMatchScalar(scalar)
+        if reverse {
+          emitReverseMatchScalar(scalar)
+        } else {
+          emitMatchScalar(scalar)
+        }
       }
       return
     }
@@ -208,7 +253,12 @@ fileprivate extension Compiler.ByteCodeGen {
           c.unicodeScalars.last!,
           boundaryCheck: true)
       } else {
-        builder.buildMatch(c, isCaseInsensitive: true)
+        if reverse {
+          builder.buildReverse(1)
+          builder.buildReverseMatch(c, isCaseInsensitive: true)
+        } else {
+          builder.buildMatch(c, isCaseInsensitive: true)
+        }
       }
       return
     }
@@ -216,12 +266,24 @@ fileprivate extension Compiler.ByteCodeGen {
     if optimizationsEnabled && c.isASCII {
       let lastIdx = c.unicodeScalars.indices.last!
       for idx in c.unicodeScalars.indices {
-        builder.buildMatchScalar(c.unicodeScalars[idx], boundaryCheck: idx == lastIdx)
+        let scalar = c.unicodeScalars[idx]
+        let boundaryCheck = idx == lastIdx
+        if reverse {
+          builder.buildReverseUnicodeScalar(1)
+          builder.buildReverseMatchScalar(scalar, boundaryCheck: boundaryCheck)
+        } else {
+          builder.buildMatchScalar(scalar, boundaryCheck: boundaryCheck)
+        }
       }
       return
     }
       
-    builder.buildMatch(c, isCaseInsensitive: false)
+    if reverse {
+      builder.buildReverse(1)
+      builder.buildReverseMatch(c, isCaseInsensitive: false)
+    } else {
+      builder.buildMatch(c, isCaseInsensitive: false)
+    }
   }
 
   mutating func emitAny() {
@@ -308,7 +370,7 @@ fileprivate extension Compiler.ByteCodeGen {
     try emitNode(node)
   }
 
-  mutating func emitPositiveLookahead(_ child: DSLTree.Node) throws {
+  mutating func emitPositiveLookaround(_ child: DSLTree.Node) throws {
     /*
       save(restoringAt: success)
       save(restoringAt: intercept)
@@ -337,7 +399,7 @@ fileprivate extension Compiler.ByteCodeGen {
     builder.label(success)
   }
   
-  mutating func emitNegativeLookahead(_ child: DSLTree.Node) throws {
+  mutating func emitNegativeLookaround(_ child: DSLTree.Node) throws {
     /*
       save(restoringAt: success)
       save(restoringAt: intercept)
@@ -365,19 +427,18 @@ fileprivate extension Compiler.ByteCodeGen {
 
     builder.label(success)
   }
-  
+
   mutating func emitLookaround(
     _ kind: (forwards: Bool, positive: Bool),
     _ child: DSLTree.Node
   ) throws {
-    guard kind.forwards else {
-      throw Unsupported("backwards assertions")
-    }
+    reverse = !kind.forwards
     if kind.positive {
-      try emitPositiveLookahead(child)
+      try emitPositiveLookaround(child)
     } else {
-      try emitNegativeLookahead(child)
+      try emitNegativeLookaround(child)
     }
+    reverse = false
   }
 
   mutating func emitAtomicNoncapturingGroup(
@@ -438,15 +499,14 @@ fileprivate extension Compiler.ByteCodeGen {
     options.beginScope()
     defer { options.endScope() }
 
-    if let lookaround = kind.lookaroundKind {
-      try emitLookaround(lookaround, child)
-      return
-    }
-
     switch kind {
     case .lookahead, .negativeLookahead,
         .lookbehind, .negativeLookbehind:
-      throw Unreachable("TODO: reason")
+      guard let lookaround = kind.lookaroundKind else {
+        throw Unreachable("TODO: reason")
+      }
+
+      try emitLookaround(lookaround, child)
 
     case .capture, .namedCapture, .balancedCapture:
       throw Unreachable("These should produce a capture node")
@@ -1161,7 +1221,7 @@ fileprivate extension Compiler.ByteCodeGen {
         return [node]
       }
     }
-    let children = children
+    var children = children
       .flatMap(flatten)
       .coalescing(with: "", into: DSLTree.Node.quotedLiteral) { str, node in
         switch node {
@@ -1180,6 +1240,9 @@ fileprivate extension Compiler.ByteCodeGen {
           return false
         }
       }
+    if reverse {
+      children.reverse()
+    }
     for child in children {
       try emitConcatenationComponent(child)
     }
@@ -1188,7 +1251,6 @@ fileprivate extension Compiler.ByteCodeGen {
   @discardableResult
   mutating func emitNode(_ node: DSLTree.Node) throws -> ValueRegister? {
     switch node {
-      
     case let .orderedChoice(children):
       try emitAlternation(children)
 
@@ -1256,7 +1318,11 @@ fileprivate extension Compiler.ByteCodeGen {
       try emitAtom(a)
 
     case let .quotedLiteral(s):
-      emitQuotedLiteral(s)
+      if reverse {
+        emitReverseQuotedLiteral(s)
+      } else {
+        emitQuotedLiteral(s)
+      }
 
     case let .convertedRegexLiteral(n, _):
       return try emitNode(n)

@@ -128,6 +128,7 @@ extension Processor {
   }
 
   mutating func reset(currentPosition: Position) {
+//    print("+++++++++ Resetting to \(input.distance(from: start, to: currentPosition)) +++++++++")
     self.currentPosition = currentPosition
 
     self.controller = Controller(pc: 0)
@@ -196,11 +197,51 @@ extension Processor {
     return false
   }
 
+  // Reverse in our input
+  //
+  // Returns whether the advance succeeded. On failure, our
+  // save point was restored
+  mutating func reverseConsume(_ n: Distance) -> Bool {
+    // TODO: needs benchmark coverage
+    if let idx = input.index(
+      currentPosition, offsetBy: -n.rawValue, limitedBy: start
+    ) {
+      currentPosition = idx
+      return true
+    }
+
+    // If `start` falls in the middle of a character, and we are trying to advance
+    // by one "character", then we should max out at `start` even though the above
+    // advancement will result in `nil`.
+    if n == 1, let idx = input.unicodeScalars.index(
+      currentPosition, offsetBy: -n.rawValue, limitedBy: start
+    ) {
+      currentPosition = idx
+      return true
+    }
+
+    signalFailure()
+    return false
+  }
+
   // Advances in unicode scalar view
   mutating func consumeScalar(_ n: Distance) -> Bool {
     // TODO: needs benchmark coverage
     guard let idx = input.unicodeScalars.index(
       currentPosition, offsetBy: n.rawValue, limitedBy: end
+    ) else {
+      signalFailure()
+      return false
+    }
+    currentPosition = idx
+    return true
+  }
+
+  // Reverses in unicode scalar view
+  mutating func reverseConsumeScalar(_ n: Distance) -> Bool {
+    // TODO: needs benchmark coverage
+    guard let idx = input.unicodeScalars.index(
+      currentPosition, offsetBy: -n.rawValue, limitedBy: start
     ) else {
       signalFailure()
       return false
@@ -256,6 +297,24 @@ extension Processor {
     return true
   }
 
+  // Reverse match against the current input element. Returns whether
+  // it succeeded vs signaling an error.
+  mutating func reverseMatch(
+    _ e: Element, isCaseInsensitive: Bool
+  ) -> Bool {
+    guard let next = input.match(
+      e,
+      at: currentPosition,
+      limitedBy: end,
+      isCaseInsensitive: isCaseInsensitive
+    ) else {
+      signalFailure()
+      return false
+    }
+    currentPosition = next
+    return true
+  }
+
   // Match against the current input prefix. Returns whether
   // it succeeded vs signaling an error.
   mutating func matchSeq(
@@ -285,6 +344,25 @@ extension Processor {
       s,
       at: currentPosition,
       limitedBy: end,
+      boundaryCheck: boundaryCheck,
+      isCaseInsensitive: isCaseInsensitive
+    ) else {
+      signalFailure()
+      return false
+    }
+    currentPosition = next
+    return true
+  }
+
+  mutating func reverseMatchScalar(
+    _ s: Unicode.Scalar,
+    boundaryCheck: Bool,
+    isCaseInsensitive: Bool
+  ) -> Bool {
+    guard let next = input.reverseMatchScalar(
+      s,
+      at: currentPosition,
+      limitedBy: start,
       boundaryCheck: boundaryCheck,
       isCaseInsensitive: isCaseInsensitive
     ) else {
@@ -361,6 +439,10 @@ extension Processor {
 
     controller.pc = pc
     currentPosition = pos ?? currentPosition
+//    if (input.startIndex..<input.endIndex).contains(currentPosition) {
+//      print("Restoring to: \(input[currentPosition]), \(pc)")
+//      print("Remaining save points: \(savePoints.map(\.destructure.pc))")
+//    }
     callStack.removeLast(callStack.count - stackEnd.rawValue)
     registers.ints = intRegisters
     registers.positions = posRegisters
@@ -497,6 +579,17 @@ extension Processor {
           controller.step()
         }
       }
+    case .reverse:
+      let (isScalar, distance) = payload.distance
+      if isScalar {
+        if reverseConsumeScalar(distance) {
+          controller.step()
+        }
+      } else {
+        if reverseConsume(distance) {
+          controller.step()
+        }
+      }
     case .matchAnyNonNewline:
       if matchAnyNonNewline(isScalarSemantics: payload.isScalar) {
         controller.step()
@@ -506,10 +599,23 @@ extension Processor {
       if match(registers[reg], isCaseInsensitive: isCaseInsensitive) {
         controller.step()
       }
-
+    case .reverseMatch:
+      let (isCaseInsensitive, reg) = payload.elementPayload
+      if reverseMatch(registers[reg], isCaseInsensitive: isCaseInsensitive) {
+        controller.step()
+      }
     case .matchScalar:
       let (scalar, caseInsensitive, boundaryCheck) = payload.scalarPayload
       if matchScalar(
+        scalar,
+        boundaryCheck: boundaryCheck,
+        isCaseInsensitive: caseInsensitive
+      ) {
+        controller.step()
+      }
+    case .reverseMatchScalar:
+      let (scalar, caseInsensitive, boundaryCheck) = payload.scalarPayload
+      if reverseMatchScalar(
         scalar,
         boundaryCheck: boundaryCheck,
         isCaseInsensitive: caseInsensitive
@@ -655,6 +761,18 @@ extension Processor {
       storedCaptures[capNum].registerValue(value)
       controller.step()
     }
+
+//    print("==== State after executing \(instructions[controller.pc].description)")
+//    print("Pos: \(input.distance(from: input.startIndex, to: currentPosition))")
+//    print("Inst: \(currentPC)")
+//    let savePointsDescription = savePoints.map { sp in
+//      let posDescription = if let pos = sp.pos {
+//        input.distance(from: input.startIndex, to: pos).description
+//      } else { "" }
+//
+//      return "Pos: \(posDescription), Inst: \(sp.pc)"
+//    }
+//    print("Save points: \(savePointsDescription)")
   }
 }
 
@@ -674,6 +792,25 @@ extension String {
     // TODO: This is also very much quick-check-able
     guard let (stringChar, next) = characterAndEnd(at: pos, limitedBy: end)
     else { return nil }
+
+    if isCaseInsensitive {
+      guard stringChar.lowercased() == char.lowercased() else { return nil }
+    } else {
+      guard stringChar == char else { return nil }
+    }
+
+    return next
+  }
+
+  func reverseMatch(
+    _ char: Character,
+    at pos: Index,
+    limitedBy start: String.Index,
+    isCaseInsensitive: Bool
+  ) -> Index? {
+    // TODO: This can be greatly sped up with string internals
+    // TODO: This is also very much quick-check-able
+    guard let (stringChar, next) = characterAndStart(at: pos, limitedBy: start) else { return nil }
 
     if isCaseInsensitive {
       guard stringChar.lowercased() == char.lowercased() else { return nil }
@@ -735,6 +872,38 @@ extension String {
 
     let idx = unicodeScalars.index(after: pos)
     assert(idx <= end, "Input is a substring with a sub-scalar endIndex.")
+
+    if boundaryCheck && !isOnGraphemeClusterBoundary(idx) {
+      return nil
+    }
+
+    return idx
+  }
+
+  func reverseMatchScalar(
+    _ scalar: Unicode.Scalar,
+    at pos: Index,
+    limitedBy start: String.Index,
+    boundaryCheck: Bool,
+    isCaseInsensitive: Bool
+  ) -> Index? {
+    // TODO: extremely quick-check-able
+    // TODO: can be sped up with string internals
+    guard pos >= start else { return nil }
+    let curScalar = unicodeScalars[pos]
+
+    if isCaseInsensitive {
+      guard curScalar.properties.lowercaseMapping == scalar.properties.lowercaseMapping
+      else {
+        return nil
+      }
+    } else {
+      guard curScalar == scalar else { return nil }
+    }
+
+    guard pos != start else { return pos }
+    let idx = unicodeScalars.index(before: pos)
+    assert(idx >= start, "Input is a substring with a sub-scalar startIndex.")
 
     if boundaryCheck && !isOnGraphemeClusterBoundary(idx) {
       return nil

@@ -103,7 +103,9 @@ func _compileRegex(
   case .none:
     dsl = ast.dslTree
   }
-  let program = try Compiler(tree: dsl).emit()
+  var program = try Compiler(tree: dsl).emit()
+  program.enableTracing = true
+  program.enableMetrics = true
   return Executor(program: program)
 }
 

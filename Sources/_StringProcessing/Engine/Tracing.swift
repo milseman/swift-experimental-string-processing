@@ -85,6 +85,13 @@ extension Instruction: CustomStringConvertible {
       } else {
         return "matchScalar '\(scalar)' boundaryCheck: \(boundaryCheck)"
       }
+    case .reverseMatchScalar:
+      let (scalar, caseInsensitive, boundaryCheck) = payload.scalarPayload
+      if caseInsensitive {
+        return "reverseMatchScalarCaseInsensitive '\(scalar)' boundaryCheck: \(boundaryCheck)"
+      } else {
+        return "reverseMatchScalar '\(scalar)' boundaryCheck: \(boundaryCheck)"
+      }
     case .moveCurrentPosition:
       let reg = payload.position
       return "\(opcode) -> pos[\(reg)]"
@@ -106,6 +113,8 @@ extension Instruction: CustomStringConvertible {
     case .transformCapture:
       let (cap, trans) = payload.pairedCaptureTransform
       return "\(opcode) trans[\(trans)](\(cap))"
+    case .reverse:
+      return "\(opcode) \(payload.distance)"
     default:
       return "\(opcode)"
     }

@@ -370,7 +370,7 @@ extension RegexValidator {
     }
     switch kind.value {
     case .capture, .namedCapture, .nonCapture, .lookahead, .negativeLookahead,
-        .atomicNonCapturing:
+        .atomicNonCapturing, .lookbehind:
       break
 
     case .balancedCapture:
@@ -384,7 +384,7 @@ extension RegexValidator {
     case .nonAtomicLookahead:
       error(.unsupported("non-atomic lookahead"), at: kind.location)
 
-    case .lookbehind, .negativeLookbehind, .nonAtomicLookbehind:
+    case .negativeLookbehind, .nonAtomicLookbehind:
       error(.unsupported("lookbehind"), at: kind.location)
 
     case .scriptRun, .atomicScriptRun:
