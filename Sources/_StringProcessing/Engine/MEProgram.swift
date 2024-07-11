@@ -14,6 +14,8 @@
 struct MEProgram {
   typealias Input = String
 
+  // TODO: convert these to UTF8Span
+  
   typealias ConsumeFunction = (Input, Range<Input.Index>) -> Input.Index?
   typealias TransformFunction =
     (Input, Processor._StoredCapture) throws -> Any?

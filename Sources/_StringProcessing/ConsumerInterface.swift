@@ -39,7 +39,7 @@ extension DSLTree.Atom {
   }
 }
 
-#if false
+// TODO: comment out after compiler crash is fixed
 extension String {
   /// Compares this string to `other` using the loose matching rule UAX44-LM2,
   /// which ignores case, whitespace, underscores, and nearly all medial
@@ -72,19 +72,14 @@ extension String {
     return index == endIndex && otherIndex == other.endIndex
   }
 }
-#endif
 
 func consumeName(_ name: String, opts: MatchingOptions) -> MEProgram.ConsumeFunction {
   let consume = consumeFunction(for: opts)
   return consume(propertyScalarPredicate {
-    let inputNameSpan = name.utf8Span
-    let dollarZeroNameSpan = $0.name?.utf8Span
-    let dollarZeroNameAliasSpan = $0.nameAlias?.utf8Span
-
     // FIXME: name aliases not covered by $0.nameAlias are missed
     // e.g. U+FEFF has both 'BYTE ORDER MARK' and 'BOM' as aliases
-    return dollarZeroNameSpan?.isEqualByUAX44LM2(to: inputNameSpan) == true
-    || dollarZeroNameAliasSpan?.isEqualByUAX44LM2(to: inputNameSpan) == true
+    $0.name?.isEqualByUAX44LM2(to: name) == true
+      || $0.nameAlias?.isEqualByUAX44LM2(to: name) == true
   })
 }
 
@@ -455,6 +450,7 @@ extension AST.Atom.CharacterProperty {
 }
 
 extension Unicode.BinaryProperty {
+  // FIXME: what should we do about this?
   // FIXME: Semantic level, vet for precise defs
   func generateConsumer(
     _ opts: MatchingOptions
@@ -627,6 +623,7 @@ extension Unicode.BinaryProperty {
 }
 
 extension Unicode.POSIXProperty {
+  // FIXME: what should we do about this?
   // FIXME: Semantic level, vet for precise defs
   func generateConsumer(
     _ opts: MatchingOptions
@@ -679,6 +676,7 @@ extension Unicode.POSIXProperty {
 }
 
 extension Unicode.ExtendedGeneralCategory {
+  // FIXME: what should we do about this?
   // FIXME: Semantic level
   func generateConsumer(
     _ opts: MatchingOptions
