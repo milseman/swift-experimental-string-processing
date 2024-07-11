@@ -877,3 +877,38 @@ extension UTF8Span {
 
 }
 
+// MARK: - Consumer helpers
+
+extension UTF8Span {
+  /// Compares this string to `other` using the loose matching rule UAX44-LM2,
+  /// which ignores case, whitespace, underscores, and nearly all medial
+  /// hyphens.
+  ///
+  /// FIXME: Only ignore medial hyphens
+  /// FIXME: Special case for U+1180 HANGUL JUNGSEONG O-E
+  /// See https://www.unicode.org/reports/tr44/#Matching_Rules
+//  fileprivate was fileprivate
+  internal func isEqualByUAX44LM2(to other: borrowing UTF8Span) -> Bool {
+    var index = characters.startIndex
+    var otherIndex = other.characters.startIndex
+
+    while index < characters.endIndex && otherIndex < other.characters.endIndex {
+      if self.characters[index].isWhitespace || self.characters[index] == "-" || self.characters[index] == "_" {
+        characters.formIndex(after: &index)
+        continue
+      }
+      if other.characters[otherIndex].isWhitespace || other.characters[otherIndex] == "-" || other.characters[otherIndex] == "_" {
+        other.characters.formIndex(after: &otherIndex)
+        continue
+      }
+
+      if self.characters[index] != other.characters[otherIndex] && self.characters[index].lowercased() != other.characters[otherIndex].lowercased() {
+        return false
+      }
+
+      characters.formIndex(after: &index)
+      other.characters.formIndex(after: &otherIndex)
+    }
+    return index == characters.endIndex && otherIndex == other.characters.endIndex
+  }
+}

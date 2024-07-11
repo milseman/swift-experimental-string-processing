@@ -40,6 +40,7 @@ extension Character {
   }
 }
 
+
 extension String {
   /// If the given string consists of a single NFC scalar, returns it. If none
   /// or multiple NFC scalars are present, returns `nil`.

@@ -322,6 +322,11 @@ extension UTF8Span.CharacterView {
   @inlinable @inline(__always)
   public var endIndex: Index { .init(span.count) }
 
+  @inlinable @inline(__always)
+  public func formIndex(after i: inout Index) {
+    i = index(after: i)
+  }
+
   @inlinable
   public func index(after i: Index) -> Index {
     .init(span.nextCharacterStart(i))

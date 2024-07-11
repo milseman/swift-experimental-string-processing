@@ -248,7 +248,13 @@ extension Processor {
             isStrictASCII: payload.builtinIsStrict,
             isScalarSemantics: isScalarSemantics)
         } else if isOneOrMore {
-          matchResult = input.utf8Span.matchOneOrMoreBuiltinCC(
+          let span = input.utf8Span
+          if !span.isEmpty {
+            print("base address: \(span.unsafeBaseAddress)")
+            print("UTF8Span: \(span[0])")
+          }
+
+          matchResult = span.matchOneOrMoreBuiltinCC(
             payload.builtinCC,
             at: currentPosition,
             limitedBy: end,
@@ -301,6 +307,7 @@ extension String {
 
 /// MARK: - Non-reluctant quantification operations on String
 
+#if false
 extension String {
   /// Run the quant loop, using the supplied matching closure
   ///
@@ -674,3 +681,4 @@ extension String {
 }
 
 
+#endif

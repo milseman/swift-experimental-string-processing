@@ -15,6 +15,7 @@ extension Processor {
     isStrictASCII: Bool,
     isScalarSemantics: Bool
   ) -> Bool {
+    #if false
     guard currentPosition < end, let next = input.matchBuiltinCC(
       cc,
       at: currentPosition,
@@ -25,6 +26,28 @@ extension Processor {
     ) else {
       signalFailure()
       return false
+    }
+    currentPosition = next
+    return true
+    #endif
+
+    let next: String.Index
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+      let end = input.spanIndex(end)
+
+      guard currentPosition < end, let n = input.utf8Span.matchBuiltinCC(
+        cc,
+        at: currentPosition,
+        limitedBy: end,
+        isInverted: isInverted,
+        isStrictASCII: isStrictASCII,
+        isScalarSemantics: isScalarSemantics
+      ) else {
+        signalFailure()
+        return false
+      }
+      next = input.index(from: n)
     }
     currentPosition = next
     return true
@@ -117,6 +140,8 @@ extension Processor {
     }
   }
 }
+
+#if false
 
 // MARK: Matching `.`
 extension String {
@@ -387,3 +412,5 @@ extension String {
     return next
   }
 }
+
+#endif

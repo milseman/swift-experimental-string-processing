@@ -246,6 +246,7 @@ extension Processor {
   mutating func match(
     _ e: Element, isCaseInsensitive: Bool
   ) -> Bool {
+    #if false
     guard let next = input.match(
       e,
       at: currentPosition,
@@ -256,6 +257,25 @@ extension Processor {
       return false
     }
     currentPosition = next
+    #endif
+
+    let next: String.Index
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+      let end = input.spanIndex(end)
+      guard let n = input.utf8Span.match(
+        e,
+        at: currentPosition,
+        limitedBy: end,
+        isCaseInsensitive: isCaseInsensitive
+      ) else {
+        signalFailure()
+        return false
+      }
+      next = input.index(from: n)
+    }
+    currentPosition = next
+
     return true
   }
 
@@ -265,6 +285,7 @@ extension Processor {
     _ seq: Substring,
     isScalarSemantics: Bool
   ) -> Bool  {
+    #if false
     guard let next = input.matchSeq(
       seq,
       at: currentPosition,
@@ -273,6 +294,23 @@ extension Processor {
     ) else {
       signalFailure()
       return false
+    }
+    #endif
+
+    let next: String.Index
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+      let end = input.spanIndex(end)
+      guard let n = input.utf8Span.matchSeq(
+        seq,
+        at: currentPosition,
+        limitedBy: end,
+        isScalarSemantics: isScalarSemantics
+      ) else {
+        signalFailure()
+        return false
+      }
+      next = input.index(from: n)
     }
 
     currentPosition = next
@@ -284,6 +322,7 @@ extension Processor {
     boundaryCheck: Bool,
     isCaseInsensitive: Bool
   ) -> Bool {
+    #if false
     guard let next = input.matchScalar(
       s,
       at: currentPosition,
@@ -294,6 +333,25 @@ extension Processor {
       signalFailure()
       return false
     }
+    #endif
+
+    let next: String.Index
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+      let end = input.spanIndex(end)
+      guard let n = input.utf8Span.matchScalar(
+        s,
+        at: currentPosition,
+        limitedBy: end,
+        boundaryCheck: boundaryCheck,
+        isCaseInsensitive: isCaseInsensitive
+      ) else {
+        signalFailure()
+        return false
+      }
+      next = input.index(from: n)
+    }
+
     currentPosition = next
     return true
   }
@@ -305,6 +363,7 @@ extension Processor {
     _ bitset: DSLTree.CustomCharacterClass.AsciiBitset,
     isScalarSemantics: Bool
   ) -> Bool {
+    #if false
     guard let next = input.matchASCIIBitset(
       bitset,
       at: currentPosition,
@@ -314,6 +373,25 @@ extension Processor {
       signalFailure()
       return false
     }
+    #endif
+
+    let next: String.Index
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+      let end = input.spanIndex(end)
+
+      guard let n = input.utf8Span.matchASCIIBitset(
+        bitset,
+        at: currentPosition,
+        limitedBy: end,
+        isScalarSemantics: isScalarSemantics
+      ) else {
+        signalFailure()
+        return false
+      }
+      next = input.index(from: n)
+    }
+
     currentPosition = next
     return true
   }
@@ -322,6 +400,7 @@ extension Processor {
   mutating func matchAnyNonNewline(
     isScalarSemantics: Bool
   ) -> Bool {
+    #if false
     guard let next = input.matchAnyNonNewline(
       at: currentPosition,
       limitedBy: end,
@@ -330,6 +409,26 @@ extension Processor {
       signalFailure()
       return false
     }
+    currentPosition = next
+
+    #endif
+
+    let next: String.Index
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+      let end = input.spanIndex(end)
+
+      guard let n = input.utf8Span.matchAnyNonNewline(
+        at: currentPosition,
+        limitedBy: end,
+        isScalarSemantics: isScalarSemantics
+      ) else {
+        signalFailure()
+        return false
+      }
+      next = input.index(from: n)
+    }
+
     currentPosition = next
     return true
   }
@@ -649,6 +748,7 @@ extension Processor {
 //
 // TODO: Refactor into separate file, formalize patterns
 
+#if false
 extension String {
 
   func match(
@@ -780,3 +880,4 @@ extension String {
     return next
   }
 }
+#endif

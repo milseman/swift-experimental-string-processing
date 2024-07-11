@@ -80,6 +80,8 @@ struct _CharacterClassModel: Hashable {
 
     let isScalarSemantics = matchLevel == .unicodeScalar
 
+
+    #if false
     return input.matchBuiltinCC(
       cc,
       at: currentPosition,
@@ -87,6 +89,25 @@ struct _CharacterClassModel: Hashable {
       isInverted: isInverted,
       isStrictASCII: isStrictASCII,
       isScalarSemantics: isScalarSemantics)
+    #endif
+
+    do {
+      let currentPosition = input.spanIndex(currentPosition)
+      let end = input.spanIndex(end)
+
+      guard let next = input.utf8Span.matchBuiltinCC(
+        cc,
+        at: currentPosition,
+        limitedBy: end,
+        isInverted: isInverted,
+        isStrictASCII: isStrictASCII,
+        isScalarSemantics: isScalarSemantics
+      ) else {
+        return nil
+      }
+
+      return input.index(from: next)
+    }
   }
 }
 

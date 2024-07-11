@@ -80,6 +80,7 @@ extension UInt8 {
   }
 }
 
+#if false
 extension String {
   /// TODO: better to take isScalarSemantics parameter, we can return more results
   /// and we can give the right `next` index, not requiring the caller to re-adjust it
@@ -170,4 +171,4 @@ extension String {
   }
 
 }
-
+#endif
