@@ -30,6 +30,27 @@ extension Processor {
     return true
   }
 
+  mutating func reverseMatchBuiltinCC(
+    _ cc: _CharacterClassModel.Representation,
+    isInverted: Bool,
+    isStrictASCII: Bool,
+    isScalarSemantics: Bool
+  ) -> Bool {
+    guard currentPosition >= start, let previous = input.reverseMatchBuiltinCC(
+      cc,
+      at: currentPosition,
+      limitedBy: start,
+      isInverted: isInverted,
+      isStrictASCII: isStrictASCII,
+      isScalarSemantics: isScalarSemantics
+    ) else {
+      signalFailure()
+      return false
+    }
+    currentPosition = previous
+    return true
+  }
+
   func isAtStartOfLine(_ payload: AssertionPayload) -> Bool {
     // TODO: needs benchmark coverage
     if currentPosition == subjectBounds.lowerBound { return true }
@@ -223,6 +244,29 @@ extension String {
       isScalarSemantics: isScalarSemantics)
   }
 
+  func reverseMatchAnyNonNewline(
+    at currentPosition: String.Index,
+    limitedBy start: String.Index,
+    isScalarSemantics: Bool
+  ) -> String.Index? {
+    guard currentPosition >= start else { return nil }
+    if case .definite(let result) = _quickReverseMatchAnyNonNewline(
+      at: currentPosition,
+      limitedBy: start,
+      isScalarSemantics: isScalarSemantics
+    ) {
+      assert(result == _thoroughReverseMatchAnyNonNewline(
+        at: currentPosition,
+        limitedBy: start,
+        isScalarSemantics: isScalarSemantics))
+      return result
+    }
+    return _thoroughReverseMatchAnyNonNewline(
+      at: currentPosition,
+      limitedBy: start,
+      isScalarSemantics: isScalarSemantics)
+  }
+
   @inline(__always)
   private func _quickMatchAnyNonNewline(
     at currentPosition: String.Index,
@@ -244,6 +288,27 @@ extension String {
     }
   }
 
+  @inline(__always)
+  private func _quickReverseMatchAnyNonNewline(
+    at currentPosition: String.Index,
+    limitedBy start: String.Index,
+    isScalarSemantics: Bool
+  ) -> QuickResult<String.Index?> {
+    assert(currentPosition >= start)
+    guard let (asciiValue, previous, isCRLF) = _quickReverseASCIICharacter(
+      at: currentPosition, limitedBy: start
+    ) else {
+      return .unknown
+    }
+    switch asciiValue {
+    case (._lineFeed)...(._carriageReturn):
+      return .definite(nil)
+    default:
+      assert(!isCRLF)
+      return .definite(previous)
+    }
+  }
+
   @inline(never)
   private func _thoroughMatchAnyNonNewline(
     at currentPosition: String.Index,
@@ -261,6 +326,25 @@ extension String {
           !char.isNewline
     else { return nil }
     return next
+  }
+
+  @inline(never)
+  private func _thoroughReverseMatchAnyNonNewline(
+    at currentPosition: String.Index,
+    limitedBy start: String.Index,
+    isScalarSemantics: Bool
+  ) -> String.Index? {
+    if isScalarSemantics {
+      guard currentPosition >= start else { return nil }
+      let scalar = unicodeScalars[currentPosition]
+      guard !scalar.isNewline else { return nil }
+      return unicodeScalars.index(after: currentPosition)
+    }
+
+    guard let (char, previous) = characterAndStart(at: currentPosition, limitedBy: start),
+          !char.isNewline
+    else { return nil }
+    return previous
   }
 }
 
@@ -302,6 +386,41 @@ extension String {
       isScalarSemantics: isScalarSemantics)
   }
 
+  func reverseMatchBuiltinCC(
+    _ cc: _CharacterClassModel.Representation,
+    at currentPosition: String.Index,
+    limitedBy start: String.Index,
+    isInverted: Bool,
+    isStrictASCII: Bool,
+    isScalarSemantics: Bool
+  ) -> String.Index? {
+    guard currentPosition >= start else { return nil }
+    if case .definite(let result) = _quickReverseMatchBuiltinCC(
+      cc,
+      at: currentPosition,
+      limitedBy: start,
+      isInverted: isInverted,
+      isStrictASCII: isStrictASCII,
+      isScalarSemantics: isScalarSemantics
+    ) {
+      assert(result == _thoroughReverseMatchBuiltinCC(
+        cc,
+        at: currentPosition,
+        limitedBy: start,
+        isInverted: isInverted,
+        isStrictASCII: isStrictASCII,
+        isScalarSemantics: isScalarSemantics))
+      return result
+    }
+    return _thoroughReverseMatchBuiltinCC(
+      cc,
+      at: currentPosition,
+      limitedBy: start,
+      isInverted: isInverted,
+      isStrictASCII: isStrictASCII,
+      isScalarSemantics: isScalarSemantics)
+  }
+
   // Mentioned in ProgrammersManual.md, update docs if redesigned
   @inline(__always)
   private func _quickMatchBuiltinCC(
@@ -322,6 +441,27 @@ extension String {
       return .unknown
     }
     return .definite(result == isInverted ? nil : next)
+  }
+
+  @inline(__always)
+  private func _quickReverseMatchBuiltinCC(
+    _ cc: _CharacterClassModel.Representation,
+    at currentPosition: String.Index,
+    limitedBy start: String.Index,
+    isInverted: Bool,
+    isStrictASCII: Bool,
+    isScalarSemantics: Bool
+  ) -> QuickResult<String.Index?> {
+    assert(currentPosition >= start)
+    guard let (previous, result) = _quickReverseMatch(
+      cc,
+      at: currentPosition,
+      limitedBy: start,
+      isScalarSemantics: isScalarSemantics
+    ) else {
+      return .unknown
+    }
+    return .definite(result == isInverted ? nil : previous)
   }
 
   // Mentioned in ProgrammersManual.md, update docs if redesigned
@@ -405,5 +545,88 @@ extension String {
       return nil
     }
     return next
+  }
+
+  @inline(never)
+  private func _thoroughReverseMatchBuiltinCC(
+    _ cc: _CharacterClassModel.Representation,
+    at currentPosition: String.Index,
+    limitedBy start: String.Index,
+    isInverted: Bool,
+    isStrictASCII: Bool,
+    isScalarSemantics: Bool
+  ) -> String.Index? {
+    // TODO: Branch here on scalar semantics
+    // Don't want to pay character cost if unnecessary
+    guard let (char, previousIndex) =
+            characterAndStart(at: currentPosition, limitedBy: start)
+    else { return nil }
+    var previous = previousIndex
+    let scalar = unicodeScalars[currentPosition]
+
+    let asciiCheck = !isStrictASCII
+    || (scalar.isASCII && isScalarSemantics)
+    || char.isASCII
+
+    var matched: Bool
+    if isScalarSemantics && cc != .anyGrapheme {
+      previous = unicodeScalars.index(before: currentPosition)
+    }
+
+    switch cc {
+    case .any, .anyGrapheme:
+      matched = true
+    case .digit:
+      if isScalarSemantics {
+        matched = scalar.properties.numericType != nil && asciiCheck
+      } else {
+        matched = char.isNumber && asciiCheck
+      }
+    case .horizontalWhitespace:
+      if isScalarSemantics {
+        matched = scalar.isHorizontalWhitespace && asciiCheck
+      } else {
+        matched = char._isHorizontalWhitespace && asciiCheck
+      }
+    case .verticalWhitespace:
+      if isScalarSemantics {
+        matched = scalar.isNewline && asciiCheck
+      } else {
+        matched = char._isNewline && asciiCheck
+      }
+    case .newlineSequence:
+      if isScalarSemantics {
+        matched = scalar.isNewline && asciiCheck
+        if matched && scalar == "\r"
+            && previous >= start && unicodeScalars[previous] == "\n" {
+          // Match a full CR-LF sequence even in scalar semantics
+          unicodeScalars.formIndex(after: &previous)
+        }
+      } else {
+        matched = char._isNewline && asciiCheck
+      }
+    case .whitespace:
+      if isScalarSemantics {
+        matched = scalar.properties.isWhitespace && asciiCheck
+      } else {
+        matched = char.isWhitespace && asciiCheck
+      }
+    case .word:
+      if isScalarSemantics {
+        matched = scalar.properties.isAlphabetic && asciiCheck
+      } else {
+        matched = char.isWordCharacter && asciiCheck
+      }
+    }
+
+    if isInverted {
+      matched.toggle()
+    }
+
+    guard matched else {
+      return nil
+    }
+
+    return previous
   }
 }

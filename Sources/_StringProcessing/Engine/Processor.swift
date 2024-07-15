@@ -128,7 +128,6 @@ extension Processor {
   }
 
   mutating func reset(currentPosition: Position) {
-//    print("+++++++++ Resetting to \(input.distance(from: start, to: currentPosition)) +++++++++")
     self.currentPosition = currentPosition
 
     self.controller = Controller(pc: 0)
@@ -393,6 +392,26 @@ extension Processor {
     return true
   }
 
+  // If we have a bitset we know that the CharacterClass only matches against
+  // ascii characters, so check if the current input element is ascii then
+  // check if it is set in the bitset
+  mutating func reverseMatchBitset(
+    _ bitset: DSLTree.CustomCharacterClass.AsciiBitset,
+    isScalarSemantics: Bool
+  ) -> Bool {
+    guard let previous = input.reverseMatchASCIIBitset(
+      bitset,
+      at: currentPosition,
+      limitedBy: start,
+      isScalarSemantics: isScalarSemantics
+    ) else {
+      signalFailure()
+      return false
+    }
+    currentPosition = previous
+    return true
+  }
+
   // Matches the next character/scalar if it is not a newline
   mutating func matchAnyNonNewline(
     isScalarSemantics: Bool
@@ -406,6 +425,22 @@ extension Processor {
       return false
     }
     currentPosition = next
+    return true
+  }
+
+  // Matches the previous character/scalar if it is not a newline
+  mutating func reverseMatchAnyNonNewline(
+    isScalarSemantics: Bool
+  ) -> Bool {
+    guard let previous = input.reverseMatchAnyNonNewline(
+      at: currentPosition,
+      limitedBy: start,
+      isScalarSemantics: isScalarSemantics
+    ) else {
+      signalFailure()
+      return false
+    }
+    currentPosition = previous
     return true
   }
 
@@ -594,6 +629,10 @@ extension Processor {
       if matchAnyNonNewline(isScalarSemantics: payload.isScalar) {
         controller.step()
       }
+    case .reverseMatchAnyNonNewline:
+      if reverseMatchAnyNonNewline(isScalarSemantics: payload.isScalar) {
+        controller.step()
+      }
     case .match:
       let (isCaseInsensitive, reg) = payload.elementPayload
       if match(registers[reg], isCaseInsensitive: isCaseInsensitive) {
@@ -629,10 +668,25 @@ extension Processor {
       if matchBitset(bitset, isScalarSemantics: isScalar) {
         controller.step()
       }
-
+    case .reverseMatchBitset:
+      let (isScalar, reg) = payload.bitsetPayload
+      let bitset = registers[reg]
+      if reverseMatchBitset(bitset, isScalarSemantics: isScalar) {
+        controller.step()
+      }
     case .matchBuiltin:
       let payload = payload.characterClassPayload
       if matchBuiltinCC(
+        payload.cc,
+        isInverted: payload.isInverted,
+        isStrictASCII: payload.isStrictASCII,
+        isScalarSemantics: payload.isScalarSemantics
+      ) {
+        controller.step()
+      }
+    case .reverseMatchBuiltin:
+      let payload = payload.characterClassPayload
+      if reverseMatchBuiltinCC(
         payload.cc,
         isInverted: payload.isInverted,
         isStrictASCII: payload.isStrictASCII,
@@ -656,6 +710,26 @@ extension Processor {
         matched = runZeroOrOneQuantify(quantPayload)
       default:
         matched = runQuantify(quantPayload)
+      }
+      if matched {
+        controller.step()
+      }
+    case .reverseQuantify:
+      let quantPayload = payload.quantify
+      let matched: Bool
+      switch (quantPayload.quantKind, quantPayload.minTrips, quantPayload.maxExtraTrips) {
+      case (.reluctant, _, _):
+        assertionFailure(".reluctant is not supported by .quantify")
+        return
+      case (.eager, 0, nil):
+        runEagerZeroOrMoreReverseQuantify(quantPayload)
+        matched = true
+      case (.eager, 1, nil):
+        matched = runEagerOneOrMoreReverseQuantify(quantPayload)
+      case (_, 0, 1):
+        matched = runZeroOrOneReverseQuantify(quantPayload)
+      default:
+        matched = runReverseQuantify(quantPayload)
       }
       if matched {
         controller.step()
@@ -960,5 +1034,55 @@ extension String {
     }
 
     return next
+  }
+
+  func reverseMatchASCIIBitset(
+    _ bitset: DSLTree.CustomCharacterClass.AsciiBitset,
+    at pos: Index,
+    limitedBy start: Index,
+    isScalarSemantics: Bool
+  ) -> Index? {
+
+    // FIXME: Inversion should be tracked and handled in only one place.
+    // That is, we should probably store it as a bit in the instruction, so that
+    // bitset matching and bitset inversion is bit-based rather that semantically
+    // inverting the notion of a match or not. As-is, we need to track both
+    // meanings in some code paths.
+    let isInverted = bitset.isInverted
+
+    // TODO: More fodder for refactoring `_quickASCIICharacter`, see the comment
+    // there
+    guard let (asciiByte, previous, isCRLF) = _quickReverseASCIICharacter(
+      at: pos,
+      limitedBy: start
+    ) else {
+      if isScalarSemantics {
+        guard pos >= start else { return nil }
+        guard bitset.matches(unicodeScalars[pos]) else { return nil }
+        return unicodeScalars.index(before: pos)
+      } else {
+        guard let (char, previous) = characterAndStart(at: pos, limitedBy: start),
+              bitset.matches(char) else { return nil }
+        return previous
+      }
+    }
+
+    guard bitset.matches(asciiByte) else {
+      // FIXME: check inversion here after refactored out of bitset
+      return nil
+    }
+
+    // CR-LF should only match `[\r]` in scalar semantic mode or if inverted
+    if isCRLF {
+      if isScalarSemantics {
+        return self.unicodeScalars.index(after: previous)
+      }
+      if isInverted {
+        return previous
+      }
+      return nil
+    }
+
+    return previous
   }
 }

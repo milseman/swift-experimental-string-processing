@@ -36,6 +36,7 @@ extension UInt8 {
   /// Assuming we're ASCII, whether we match `\d`
   var _asciiIsDigit: Bool {
     assert(_isASCII)
+    print((_0..._9).contains(self))
     return(_0..._9).contains(self)
   }
 
@@ -122,6 +123,49 @@ extension String {
     return (first: base, next: next, crLF: false)
   }
 
+  /// TODO: better to take isScalarSemantics parameter, we can return more results
+  /// and we can give the right `next` index, not requiring the caller to re-adjust it
+  /// TODO: detailed description of nuanced semantics
+  func _quickReverseASCIICharacter(
+    at idx: Index,
+    limitedBy start: Index
+  ) -> (first: UInt8, previous: Index, crLF: Bool)? {
+    // TODO: fastUTF8 version
+    assert(String.Index(idx, within: unicodeScalars) != nil)
+    assert(idx >= start)
+
+    guard idx != start else {
+      return nil
+    }
+
+    let base = utf8[idx]
+    guard base._isASCII else {
+      assert(!self[idx].isASCII)
+      return nil
+    }
+
+    var previous = utf8.index(before: idx)
+    if previous == start {
+      return (first: base, previous: previous, crLF: false)
+    }
+
+    let head = utf8[previous]
+    guard head._isSub300StartingByte else { return nil }
+
+    // Handle CR-LF:
+    if base == ._carriageReturn && head == ._lineFeed {
+      utf8.formIndex(before: &previous)
+      guard previous == start || utf8[previous]._isSub300StartingByte else {
+        return nil
+      }
+      return (first: base, previous: previous, crLF: true)
+    }
+
+    assert(self[idx].isASCII && self[idx] != "\r\n")
+    print(String(decoding: [base], as: UTF8.self))
+    return (first: base, previous: previous, crLF: false)
+  }
+
   func _quickMatch(
     _ cc: _CharacterClassModel.Representation,
     at idx: Index,
@@ -166,6 +210,55 @@ extension String {
 
     case .word:
       return (next, asciiValue._asciiIsWord)
+    }
+  }
+
+  func _quickReverseMatch(
+    _ cc: _CharacterClassModel.Representation,
+    at idx: Index,
+    limitedBy start: Index,
+    isScalarSemantics: Bool
+  ) -> (previous: Index, matchResult: Bool)? {
+    /// ASCII fast-paths
+    guard let (asciiValue, previous, isCRLF) = _quickReverseASCIICharacter(
+      at: idx, limitedBy: start
+    ) else {
+      return nil
+    }
+
+    // TODO: bitvectors
+    print(String(decoding: [asciiValue], as: UTF8.self))
+    print(cc)
+    switch cc {
+    case .any, .anyGrapheme:
+      return (previous, true)
+
+    case .digit:
+      return (previous, asciiValue._asciiIsDigit)
+
+    case .horizontalWhitespace:
+      return (previous, asciiValue._asciiIsHorizontalWhitespace)
+
+    case .verticalWhitespace, .newlineSequence:
+      if asciiValue._asciiIsVerticalWhitespace {
+        if isScalarSemantics && isCRLF && cc == .verticalWhitespace {
+          return (utf8.index(after: previous), true)
+        }
+        return (previous, true)
+      }
+      return (previous, false)
+
+    case .whitespace:
+      if asciiValue._asciiIsWhitespace {
+        if isScalarSemantics && isCRLF {
+          return (utf8.index(after: previous), true)
+        }
+        return (previous, true)
+      }
+      return (previous, false)
+
+    case .word:
+      return (previous, asciiValue._asciiIsWord)
     }
   }
 

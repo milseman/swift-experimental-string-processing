@@ -209,7 +209,11 @@ fileprivate extension Compiler.ByteCodeGen {
   }
 
   mutating func emitCharacterClass(_ cc: DSLTree.Atom.CharacterClass) {
-    builder.buildMatchBuiltin(model: cc.asRuntimeModel(options))
+    if reverse {
+      builder.buildReverseMatchBuiltin(model: cc.asRuntimeModel(options))
+    } else {
+      builder.buildMatchBuiltin(model: cc.asRuntimeModel(options))
+    }
   }
 
   mutating func emitMatchScalar(_ s: UnicodeScalar) {
@@ -243,7 +247,7 @@ fileprivate extension Compiler.ByteCodeGen {
       }
       return
     }
-    
+
     if options.isCaseInsensitive && c.isCased {
       if optimizationsEnabled && c.isASCII {
         // c.isCased ensures that c is not CR-LF,
@@ -262,7 +266,7 @@ fileprivate extension Compiler.ByteCodeGen {
       }
       return
     }
-    
+
     if optimizationsEnabled && c.isASCII {
       let lastIdx = c.unicodeScalars.indices.last!
       for idx in c.unicodeScalars.indices {
@@ -277,7 +281,7 @@ fileprivate extension Compiler.ByteCodeGen {
       }
       return
     }
-      
+
     if reverse {
       builder.buildReverse(1)
       builder.buildReverseMatch(c, isCaseInsensitive: false)
@@ -353,7 +357,7 @@ fileprivate extension Compiler.ByteCodeGen {
     try body(&self, elements.last!)
     builder.label(done)
   }
-  
+
   mutating func emitAlternation(
     _ children: [DSLTree.Node]
   ) throws {
@@ -398,7 +402,7 @@ fileprivate extension Compiler.ByteCodeGen {
 
     builder.label(success)
   }
-  
+
   mutating func emitNegativeLookaround(_ child: DSLTree.Node) throws {
     /*
       save(restoringAt: success)
@@ -517,7 +521,7 @@ fileprivate extension Compiler.ByteCodeGen {
       }
       options.apply(optionSequence)
       try emitNode(child)
-      
+
     case .atomicNonCapturing:
       try emitAtomicNoncapturingGroup(child)
 
@@ -769,6 +773,248 @@ fileprivate extension Compiler.ByteCodeGen {
     builder.label(exit)
   }
 
+  mutating func emitReverseQuantification(
+    _ amount: AST.Quantification.Amount,
+    _ kind: DSLTree.QuantificationKind,
+    _ child: DSLTree.Node
+  ) throws {
+    let updatedKind: AST.Quantification.Kind
+    switch kind {
+    case .explicit(let kind):
+      updatedKind = kind.ast
+    case .syntax(let kind):
+      updatedKind = kind.ast.applying(options)
+    case .default:
+      updatedKind = options.defaultQuantificationKind
+    }
+
+    let (low, high) = amount.bounds
+    guard let low = low else {
+      throw Unreachable("Must have a lower bound")
+    }
+    switch (low, high) {
+    case (_, 0):
+      // TODO: Should error out earlier, maybe DSL and parser
+      // has validation logic?
+      return
+    case let (n, m?) where n > m:
+      // TODO: Should error out earlier, maybe DSL and parser
+      // has validation logic?
+      return
+
+    case let (n, m) where m == nil || n <= m!:
+      // Ok
+      break
+    default:
+      throw Unreachable("TODO: reason")
+    }
+
+    // TODO: Compiler and/or parser should enforce these invariants
+    // before we are called
+    assert(high != 0)
+    assert((0...(high ?? Int.max)).contains(low))
+
+    let maxExtraTrips: Int?
+    if let h = high {
+      maxExtraTrips = h - low
+    } else {
+      maxExtraTrips = nil
+    }
+    let minTrips = low
+    assert((maxExtraTrips ?? 1) >= 0)
+
+    if tryEmitFastReverseQuant(child, updatedKind, minTrips, maxExtraTrips) {
+      return
+    }
+
+    // The below is a general algorithm for bounded and unbounded
+    // quantification. It can be specialized when the min
+    // is 0 or 1, or when extra trips is 1 or unbounded.
+    //
+    // Stuff inside `<` and `>` are decided at compile time,
+    // while run-time values stored in registers start with a `%`
+    _ = """
+      min-trip-count control block:
+        if %minTrips is zero:
+          goto exit-policy control block
+        else:
+          decrement %minTrips and fallthrough
+
+      loop-body:
+        <if can't guarantee forward progress && maxExtraTrips = nil>:
+          mov currentPosition %pos
+        evaluate the subexpression
+        <if can't guarantee forward progress && maxExtraTrips = nil>:
+          if %pos is currentPosition:
+            goto exit
+        goto min-trip-count control block
+
+      exit-policy control block:
+        if %maxExtraTrips is zero:
+          goto exit
+        else:
+          decrement %maxExtraTrips and fallthrough
+
+        <if eager>:
+          save exit and goto loop-body
+        <if possessive>:
+          ratchet and goto loop
+        <if reluctant>:
+          save loop-body and fallthrough (i.e. goto exit)
+
+      exit
+        ... the rest of the program ...
+    """
+
+    // Specialization based on `minTrips` for 0 or 1:
+    _ = """
+      min-trip-count control block:
+        <if minTrips == 0>:
+          goto exit-policy
+        <if minTrips == 1>:
+          /* fallthrough */
+
+      loop-body:
+        evaluate the subexpression
+        <if minTrips <= 1>
+          /* fallthrough */
+    """
+
+    // Specialization based on `maxExtraTrips` for 0 or unbounded
+    _ = """
+      exit-policy control block:
+        <if maxExtraTrips == 0>:
+          goto exit
+        <if maxExtraTrips == .unbounded>:
+          /* fallthrough */
+    """
+
+    /*
+     NOTE: These specializations don't emit the optimal
+     code layout (e.g. fallthrough vs goto), but that's better
+     done later (not prematurely) and certainly better
+     done by an optimizing compiler.
+
+     NOTE: We're intentionally emitting essentially the same
+     algorithm for all quantifications for now, for better
+     testing and surfacing difficult bugs. We can specialize
+     for other things, like `.*`, later.
+
+     When it comes time for optimizing, we can also look into
+     quantification instructions (e.g. reduce save-point traffic)
+     */
+
+    let minTripsControl = builder.makeAddress()
+    let loopBody = builder.makeAddress()
+    let exitPolicy = builder.makeAddress()
+    let exit = builder.makeAddress()
+
+    // We'll need registers if we're (non-trivially) bounded
+    let minTripsReg: IntRegister?
+    if minTrips > 1 {
+      minTripsReg = builder.makeIntRegister(
+        initialValue: minTrips)
+    } else {
+      minTripsReg = nil
+    }
+
+    let maxExtraTripsReg: IntRegister?
+    if (maxExtraTrips ?? 0) > 0 {
+      maxExtraTripsReg = builder.makeIntRegister(
+        initialValue: maxExtraTrips!)
+    } else {
+      maxExtraTripsReg = nil
+    }
+
+    // Set up a dummy save point for possessive to update
+    if updatedKind == .possessive {
+      builder.pushEmptySavePoint()
+    }
+
+    // min-trip-count:
+    //   condBranch(to: exitPolicy, ifZeroElseDecrement: %min)
+    builder.label(minTripsControl)
+    switch minTrips {
+    case 0: builder.buildBranch(to: exitPolicy)
+    case 1: break
+    default:
+      assert(minTripsReg != nil, "logic inconsistency")
+      builder.buildCondBranch(
+        to: exitPolicy, ifZeroElseDecrement: minTripsReg!)
+    }
+
+    // FIXME: Possessive needs a "dummy" save point to ratchet
+
+    // loop:
+    //   <subexpression>
+    //   branch min-trip-count
+    builder.label(loopBody)
+
+    // if we aren't sure if the child node will have backward progress and
+    // we have an unbounded quantification
+    let endPosition: PositionRegister?
+    let emitPositionChecking =
+    (!optimizationsEnabled || !child.guaranteesBackwardProgress) &&
+    maxExtraTrips == nil
+
+    if emitPositionChecking {
+      endPosition = builder.makePositionRegister()
+      builder.buildMoveCurrentPosition(into: endPosition!)
+    } else {
+      endPosition = nil
+    }
+    try emitNode(child)
+    if emitPositionChecking {
+      // in all quantifier cases, no matter what minTrips or maxExtraTrips is,
+      // if we have a successful non-advancing match, branch to exit because it
+      // can match an arbitrary number of times
+      builder.buildCondBranch(to: exit, ifSamePositionAs: endPosition!)
+    }
+
+    if minTrips <= 1 {
+      // fallthrough
+    } else {
+      builder.buildBranch(to: minTripsControl)
+    }
+
+    // exit-policy:
+    //   condBranch(to: exit, ifZeroElseDecrement: %maxExtraTrips)
+    //   <eager: split(to: loop, saving: exit)>
+    //   <possesive:
+    //     clearSavePoint
+    //     split(to: loop, saving: exit)>
+    //   <reluctant: save(restoringAt: loop)
+    builder.label(exitPolicy)
+    switch maxExtraTrips {
+    case nil: break
+    case 0:   builder.buildBranch(to: exit)
+    default:
+      assert(maxExtraTripsReg != nil, "logic inconsistency")
+      builder.buildCondBranch(
+        to: exit, ifZeroElseDecrement: maxExtraTripsReg!)
+    }
+
+    switch updatedKind {
+    case .eager:
+      builder.buildSplit(to: loopBody, saving: exit)
+    case .possessive:
+      builder.buildClear()
+      builder.buildSplit(to: loopBody, saving: exit)
+    case .reluctant:
+      builder.buildSave(loopBody)
+      // FIXME: Is this re-entrant? That is would nested
+      // quantification break if trying to restore to a prior
+      // iteration because the register got overwritten?
+      //
+#if RESILIENT_LIBRARIES
+    @unknown default:
+      fatalError()
+#endif
+    }
+
+    builder.label(exit)
+  }
+
   /// Specialized quantification instruction for repetition of certain nodes in grapheme semantic mode
   /// Allowed nodes are:
   /// - single ascii scalar .char
@@ -840,6 +1086,79 @@ fileprivate extension Compiler.ByteCodeGen {
     }
     return true
   }
+
+  /// Specialized quantification instruction for repetition of certain nodes in grapheme semantic mode
+  /// Allowed nodes are:
+  /// - single ascii scalar .char
+  /// - ascii .customCharacterClass
+  /// - single grapheme consumgin built in character classes
+  /// - .any, .anyNonNewline, .dot
+  mutating func tryEmitFastReverseQuant(
+    _ child: DSLTree.Node,
+    _ kind: AST.Quantification.Kind,
+    _ minTrips: Int,
+    _ maxExtraTrips: Int?
+  ) -> Bool {
+    let isScalarSemantics = options.semanticLevel == .unicodeScalar
+    guard optimizationsEnabled
+            && minTrips <= QuantifyPayload.maxStorableTrips
+            && maxExtraTrips ?? 0 <= QuantifyPayload.maxStorableTrips
+            && kind != .reluctant else {
+      return false
+    }
+    switch child {
+    case .customCharacterClass(let ccc):
+      // ascii only custom character class
+      guard let bitset = ccc.asAsciiBitset(options) else {
+        return false
+      }
+      builder.buildReverseQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
+
+    case .atom(let atom):
+      switch atom {
+      case .char(let c):
+        // Single scalar ascii value character
+        guard let val = c._singleScalarAsciiValue else {
+          return false
+        }
+        builder.buildReverseQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
+
+      case .any:
+        builder.buildReverseQuantifyAny(
+          matchesNewlines: true, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
+      case .anyNonNewline:
+        builder.buildReverseQuantifyAny(
+          matchesNewlines: false, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
+      case .dot:
+        builder.buildReverseQuantifyAny(
+          matchesNewlines: options.dotMatchesNewline, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
+
+      case .characterClass(let cc):
+        // Custom character class that consumes a single grapheme
+        let model = cc.asRuntimeModel(options)
+        builder.buildReverseQuantify(
+          model: model,
+          kind,
+          minTrips,
+          maxExtraTrips,
+          isScalarSemantics: isScalarSemantics)
+      default:
+        return false
+      }
+    case .convertedRegexLiteral(let node, _):
+      return tryEmitFastReverseQuant(node, kind, minTrips, maxExtraTrips)
+    case .nonCapturingGroup(let groupKind, let node):
+      // .nonCapture nonCapturingGroups are ignored during compilation
+      guard groupKind.ast == .nonCapture else {
+        return false
+      }
+      return tryEmitFastReverseQuant(node, kind, minTrips, maxExtraTrips)
+    default:
+      return false
+    }
+    return true
+  }
+
 
   /// Coalesce any adjacent scalar members in a custom character class together.
   /// This is required in order to produce correct grapheme matching behavior.
@@ -974,7 +1293,7 @@ fileprivate extension Compiler.ByteCodeGen {
     result.append(contentsOf: scalars.map { .atom(.scalar($0)) })
     return result
   }
-  
+
   func coalescingCustomCharacterClass(
     _ ccc: DSLTree.CustomCharacterClass
   ) -> DSLTree.CustomCharacterClass {
@@ -1002,7 +1321,7 @@ fileprivate extension Compiler.ByteCodeGen {
       }
     }
   }
-  
+
   mutating func emitCCCMember(
     _ member: DSLTree.CustomCharacterClass.Member
   ) throws {
@@ -1025,7 +1344,7 @@ fileprivate extension Compiler.ByteCodeGen {
       builder.buildConsume(by: consumer)
     case .trivia:
       return
-      
+
     // TODO: Can we decide when it's better to try `rhs` first?
     // Intersection is trivial, since failure on either side propagates:
     // - store current position
@@ -1038,7 +1357,7 @@ fileprivate extension Compiler.ByteCodeGen {
       try emitCustomCharacterClass(lhs)
       builder.buildRestorePosition(from: r)
       try emitCustomCharacterClass(rhs)
-      
+
     // TODO: Can we decide when it's better to try `rhs` first?
     // For subtraction, failure in `lhs` propagates, while failure in `rhs` is
     // swallowed/reversed:
@@ -1060,7 +1379,7 @@ fileprivate extension Compiler.ByteCodeGen {
       builder.buildClear()                // clears 'end'
       builder.buildFail()                 // this failure propagates outward
       builder.label(end)
-    
+
     // Symmetric difference always requires executing both `rhs` and `lhs`.
     // Execute each, ignoring failure and storing the resulting position in a
     // register. If those results are equal, fail. If they're different, use
@@ -1101,18 +1420,18 @@ fileprivate extension Compiler.ByteCodeGen {
       builder.buildClear()
       builder.label(lhsFail)
       builder.buildMoveCurrentPosition(into: r1)
-      
+
       builder.buildRestorePosition(from: r0)
       builder.buildSave(rhsFail)
       try emitCustomCharacterClass(rhs)
       builder.buildClear()
       builder.label(rhsFail)
       builder.buildMoveCurrentPosition(into: r2)
-      
+
       // If r1 == r2, then fail
       builder.buildRestorePosition(from: r1)
       builder.buildCondBranch(to: fail, ifSamePositionAs: r2)
-      
+
       // If r1 == r0, then move to r2 before ending
       builder.buildCondBranch(to: advance, ifSamePositionAs: r0)
       builder.buildBranch(to: end)
@@ -1122,10 +1441,10 @@ fileprivate extension Compiler.ByteCodeGen {
 
       builder.label(fail)
       builder.buildFail()
-      builder.label(end)      
+      builder.label(end)
     }
   }
-  
+
   mutating func emitCustomCharacterClass(
     _ ccc: DSLTree.CustomCharacterClass
   ) throws {
@@ -1151,7 +1470,7 @@ fileprivate extension Compiler.ByteCodeGen {
       updatedCCC = ccc
     }
     let filteredMembers = updatedCCC.members.filter({!$0.isOnlyTrivia})
-    
+
     if updatedCCC.isInverted {
       // inverted
       // custom character class: p0 | p1 | ... | pn
@@ -1188,7 +1507,7 @@ fileprivate extension Compiler.ByteCodeGen {
       builder.buildClear()
       builder.buildFail()
       builder.label(done)
-      
+
       // Consume a single unit for the inverted ccc
       switch options.semanticLevel {
       case .graphemeCluster:
@@ -1296,12 +1615,16 @@ fileprivate extension Compiler.ByteCodeGen {
 
     case let .ignoreCapturesInTypedOutput(child):
       try emitNode(child)
-      
+
     case .conditional:
       throw Unsupported("Conditionals")
 
     case let .quantification(amt, kind, child):
-      try emitQuantification(amt.ast, kind, child)
+      if reverse {
+        try emitReverseQuantification(amt.ast, kind, child)
+      } else {
+        try emitQuantification(amt.ast, kind, child)
+      }
 
     case let .customCharacterClass(ccc):
       if ccc.containsDot {
@@ -1390,6 +1713,51 @@ extension DSLTree.Node {
     default: return false
     }
   }
+
+  /// A Boolean value indicating whether this node reverses the match position
+  /// on a successful match.
+  ///
+  /// For example, an alternation like `(a|b|c)` always advances the position
+  /// by a character, but `(a|b|)` has an empty branch, which matches without
+  /// advancing.
+  var guaranteesBackwardProgress: Bool {
+    switch self {
+    case .orderedChoice(let children):
+      return children.allSatisfy { $0.guaranteesBackwardProgress }
+    case .concatenation(let children):
+      return children.contains(where: { $0.guaranteesBackwardProgress })
+    case .capture(_, _, let node, _):
+      return node.guaranteesBackwardProgress
+    case .nonCapturingGroup(let kind, let child):
+      switch kind.ast {
+      case .lookahead, .negativeLookahead, .lookbehind, .negativeLookbehind:
+        return false
+      default: return child.guaranteesBackwardProgress
+      }
+    case .atom(let atom):
+      switch atom {
+      case .changeMatchingOptions, .assertion: return false
+        // Captures may be nil so backreferences may be zero length matches
+      case .backreference: return false
+      default: return true
+      }
+    case .trivia, .empty:
+      return false
+    case .quotedLiteral(let string):
+      return !string.isEmpty
+    case .convertedRegexLiteral(let node, _):
+      return node.guaranteesBackwardProgress
+    case .consumer, .matcher:
+      // Allow zero width consumers and matchers
+      return false
+    case .customCharacterClass(let ccc):
+      return ccc.guaranteesBackwardProgress
+    case .quantification(let amount, _, let child):
+      let (atLeast, _) = amount.ast.bounds
+      return atLeast ?? 0 > 0 && child.guaranteesBackwardProgress
+    default: return false
+    }
+  }
 }
 
 extension DSLTree.CustomCharacterClass {
@@ -1406,6 +1774,26 @@ extension DSLTree.CustomCharacterClass {
         return lhs.guaranteesForwardProgress
       case let .symmetricDifference(lhs, rhs):
         return lhs.guaranteesForwardProgress && rhs.guaranteesForwardProgress
+      default:
+        return true
+      }
+    }
+    return false
+  }
+
+  /// We allow trivia into CustomCharacterClass, which could result in a CCC
+  /// that matches nothing, ie `(?x)[ ]`.
+  var guaranteesBackwardProgress: Bool {
+    for m in members {
+      switch m {
+      case .trivia:
+        continue
+      case let .intersection(lhs, rhs):
+        return lhs.guaranteesBackwardProgress && rhs.guaranteesBackwardProgress
+      case let .subtraction(lhs, _):
+        return lhs.guaranteesBackwardProgress
+      case let .symmetricDifference(lhs, rhs):
+        return lhs.guaranteesBackwardProgress && rhs.guaranteesBackwardProgress
       default:
         return true
       }

@@ -133,7 +133,7 @@ extension Instruction {
     ///     reverseMatchScalar(_: Unicode.Scalar, isCaseInsensitive: Bool, boundaryCheck: Bool)
     ///
     /// Operands: Scalar value to match against and booleans
-    case reverseMatchScalar // TODO: Impl
+    case reverseMatchScalar
 
     /// Match a character or a scalar against a set of valid ascii values stored in a bitset
     ///
@@ -151,7 +151,7 @@ extension Instruction {
     /// Operand:
     ///  - Ascii bitset register containing the bitset
     ///  - Boolean for if we should match by scalar value
-//    case reverseMatchBitset // TODO: Impl
+    case reverseMatchBitset
 
     /// Match against a built-in character class
     ///
@@ -165,13 +165,13 @@ extension Instruction {
 
     /// Reverse match against a built-in character class
     ///
-    ///     matchBuiltin(_: CharacterClassPayload)
+    ///     reverseMatchBuiltin(_: CharacterClassPayload)
     ///
     /// Operand: the payload contains
     /// - The character class
     /// - If it is inverted
     /// - If it strictly matches only ascii values
-//    case reverseMatchBuiltin // TODO: Impl
+    case reverseMatchBuiltin
 
     /// Matches any non newline character
     /// Operand: If we are in scalar mode or not
@@ -179,7 +179,7 @@ extension Instruction {
 
     /// Reverse matches any non newline character
     /// Operand: If we are in scalar mode or not
-//    case reverseMatchAnyNonNewline // TODO: Impl
+    case reverseMatchAnyNonNewline
 
     // MARK: Extension points
 
@@ -258,6 +258,13 @@ extension Instruction {
     ///     quantify(_:QuantifyPayload)
     ///
     case quantify
+    /// Fused reverse quantify, execute, save instruction
+    /// Quantifies the stored instruction in an inner loop instead of looping through instructions in processor
+    /// Only quantifies specific nodes
+    ///
+    ///     quantify(_:QuantifyPayload)
+    ///
+    case reverseQuantify
     /// Begin the given capture
     ///
     ///     beginCapture(_:CapReg)

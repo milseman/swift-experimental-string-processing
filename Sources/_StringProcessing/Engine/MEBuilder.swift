@@ -156,12 +156,10 @@ extension MEProgram.Builder {
 
   mutating func buildReverse(_ n: Distance) {
     instructions.append(.init(.reverse, .init(distance: n)))
-    print(instructions)
   }
 
   mutating func buildReverseUnicodeScalar(_ n: Distance) {
     instructions.append(.init(.reverse, .init(distance: n, isScalarDistance: true)))
-    print(instructions)
   }
 
   mutating func buildAdvanceUnicodeScalar(_ n: Distance) {
@@ -222,6 +220,11 @@ extension MEProgram.Builder {
       .matchBuiltin, .init(model)))
   }
 
+  mutating func buildReverseMatchBuiltin(model: _CharacterClassModel) {
+    instructions.append(.init(
+      .reverseMatchBuiltin, .init(model)))
+  }
+
   mutating func buildConsume(
     by p: @escaping MEProgram.ConsumeFunction
   ) {
@@ -259,6 +262,18 @@ extension MEProgram.Builder {
       .init(quantify: .init(bitset: makeAsciiBitset(bitset), kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
+  mutating func buildReverseQuantify(
+    bitset: DSLTree.CustomCharacterClass.AsciiBitset,
+    _ kind: AST.Quantification.Kind,
+    _ minTrips: Int,
+    _ maxExtraTrips: Int?,
+    isScalarSemantics: Bool
+  ) {
+    instructions.append(.init(
+      .reverseQuantify,
+      .init(quantify: .init(bitset: makeAsciiBitset(bitset), kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
+  }
+
   mutating func buildQuantify(
     asciiChar: UInt8,
     _ kind: AST.Quantification.Kind,
@@ -268,6 +283,18 @@ extension MEProgram.Builder {
   ) {
     instructions.append(.init(
       .quantify,
+      .init(quantify: .init(asciiChar: asciiChar, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
+  }
+
+  mutating func buildReverseQuantify(
+    asciiChar: UInt8,
+    _ kind: AST.Quantification.Kind,
+    _ minTrips: Int,
+    _ maxExtraTrips: Int?,
+    isScalarSemantics: Bool
+  ) {
+    instructions.append(.init(
+      .reverseQuantify,
       .init(quantify: .init(asciiChar: asciiChar, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
@@ -283,6 +310,18 @@ extension MEProgram.Builder {
       .init(quantify: .init(matchesNewlines: matchesNewlines, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
+  mutating func buildReverseQuantifyAny(
+    matchesNewlines: Bool,
+    _ kind: AST.Quantification.Kind,
+    _ minTrips: Int,
+    _ maxExtraTrips: Int?,
+    isScalarSemantics: Bool
+  ) {
+    instructions.append(.init(
+      .reverseQuantify,
+      .init(quantify: .init(matchesNewlines: matchesNewlines, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
+  }
+
   mutating func buildQuantify(
     model: _CharacterClassModel,
     _ kind: AST.Quantification.Kind,
@@ -292,6 +331,18 @@ extension MEProgram.Builder {
   ) {
     instructions.append(.init(
       .quantify,
+      .init(quantify: .init(model: model,kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
+  }
+
+  mutating func buildReverseQuantify(
+    model: _CharacterClassModel,
+    _ kind: AST.Quantification.Kind,
+    _ minTrips: Int,
+    _ maxExtraTrips: Int?,
+    isScalarSemantics: Bool
+  ) {
+    instructions.append(.init(
+      .reverseQuantify,
       .init(quantify: .init(model: model,kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
