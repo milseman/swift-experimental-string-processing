@@ -171,8 +171,16 @@ extension MEProgram.Builder {
     instructions.append(.init(.matchAnyNonNewline, .init(isScalar: false)))
   }
 
+  mutating func buildReverseConsumeNonNewline() {
+    instructions.append(.init(.reverseMatchAnyNonNewline, .init(isScalar: false)))
+  }
+
   mutating func buildConsumeScalarNonNewline() {
     instructions.append(.init(.matchAnyNonNewline, .init(isScalar: true)))
+  }
+
+  mutating func buildReverseConsumeScalarNonNewline() {
+    instructions.append(.init(.reverseMatchAnyNonNewline, .init(isScalar: true)))
   }
 
   mutating func buildMatch(_ e: Character, isCaseInsensitive: Bool) {

@@ -53,6 +53,10 @@ enum DecodedInstr {
   case reverse
   case reverseMatch
   case reverseMatchScalar
+  case reverseMatchBitset
+  case reverseMatchBuiltin
+  case reverseMatchAnyNonNewline
+  case reverseQuantify
 }
 
 extension DecodedInstr {
@@ -150,6 +154,14 @@ extension DecodedInstr {
       return .reverseMatch
     case .reverseMatchScalar:
       return .reverseMatchScalar
+    case .reverseMatchBitset:
+      return .reverseMatchBitset
+    case .reverseMatchBuiltin:
+      return .reverseMatchBuiltin
+    case .reverseMatchAnyNonNewline:
+      return .reverseMatchAnyNonNewline
+    case .reverseQuantify:
+      return .reverseQuantify
     }
   }
 }

@@ -301,16 +301,16 @@ extension Processor {
   mutating func reverseMatch(
     _ e: Element, isCaseInsensitive: Bool
   ) -> Bool {
-    guard let next = input.match(
+    guard let previous = input.reverseMatch(
       e,
       at: currentPosition,
-      limitedBy: end,
+      limitedBy: start,
       isCaseInsensitive: isCaseInsensitive
     ) else {
       signalFailure()
       return false
     }
-    currentPosition = next
+    currentPosition = previous
     return true
   }
 
@@ -358,7 +358,7 @@ extension Processor {
     boundaryCheck: Bool,
     isCaseInsensitive: Bool
   ) -> Bool {
-    guard let next = input.reverseMatchScalar(
+    guard let previous = input.reverseMatchScalar(
       s,
       at: currentPosition,
       limitedBy: start,
@@ -368,7 +368,7 @@ extension Processor {
       signalFailure()
       return false
     }
-    currentPosition = next
+    currentPosition = previous
     return true
   }
 
@@ -474,10 +474,6 @@ extension Processor {
 
     controller.pc = pc
     currentPosition = pos ?? currentPosition
-//    if (input.startIndex..<input.endIndex).contains(currentPosition) {
-//      print("Restoring to: \(input[currentPosition]), \(pc)")
-//      print("Remaining save points: \(savePoints.map(\.destructure.pc))")
-//    }
     callStack.removeLast(callStack.count - stackEnd.rawValue)
     registers.ints = intRegisters
     registers.positions = posRegisters
@@ -835,18 +831,6 @@ extension Processor {
       storedCaptures[capNum].registerValue(value)
       controller.step()
     }
-
-//    print("==== State after executing \(instructions[controller.pc].description)")
-//    print("Pos: \(input.distance(from: input.startIndex, to: currentPosition))")
-//    print("Inst: \(currentPC)")
-//    let savePointsDescription = savePoints.map { sp in
-//      let posDescription = if let pos = sp.pos {
-//        input.distance(from: input.startIndex, to: pos).description
-//      } else { "" }
-//
-//      return "Pos: \(posDescription), Inst: \(sp.pc)"
-//    }
-//    print("Save points: \(savePointsDescription)")
   }
 }
 
@@ -1000,7 +984,7 @@ extension String {
     // meanings in some code paths.
     let isInverted = bitset.isInverted
 
-    // TODO: More fodder for refactoring `_quickASCIICharacter`, see the comment 
+    // TODO: More fodder for refactoring `_quickASCIICharacter`, see the comment
     // there
     guard let (asciiByte, next, isCRLF) = _quickASCIICharacter(
       at: pos,

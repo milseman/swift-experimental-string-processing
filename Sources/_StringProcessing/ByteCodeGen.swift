@@ -148,7 +148,6 @@ fileprivate extension Compiler.ByteCodeGen {
 
     // Fast path for eliding boundary checks for an all ascii quoted literal
     if optimizationsEnabled && s.allSatisfy(\.isASCII) && !s.isEmpty {
-      builder.buildReverseUnicodeScalar(1)
       let lastIdx = s.unicodeScalars.indices.first!
       for idx in s.unicodeScalars.indices.reversed() {
         let boundaryCheck = idx == lastIdx
@@ -162,7 +161,6 @@ fileprivate extension Compiler.ByteCodeGen {
       return
     }
 
-    builder.buildReverse(1)
     for c in s.reversed() { emitCharacter(c) }
   }
 
@@ -223,7 +221,6 @@ fileprivate extension Compiler.ByteCodeGen {
 
   mutating func emitReverseMatchScalar(_ s: UnicodeScalar) {
     assert(options.semanticLevel == .unicodeScalar)
-    builder.buildReverseUnicodeScalar(1)
     if options.isCaseInsensitive && s.properties.isCased {
       builder.buildReverseMatchScalarCaseInsensitive(s, boundaryCheck: false)
     } else {
@@ -254,7 +251,6 @@ fileprivate extension Compiler.ByteCodeGen {
           boundaryCheck: true)
       } else {
         if reverse {
-          builder.buildReverse(1)
           builder.buildReverseMatch(c, isCaseInsensitive: true)
         } else {
           builder.buildMatch(c, isCaseInsensitive: true)
@@ -269,7 +265,6 @@ fileprivate extension Compiler.ByteCodeGen {
         let scalar = c.unicodeScalars[idx]
         let boundaryCheck = idx == lastIdx
         if reverse {
-          builder.buildReverseUnicodeScalar(1)
           builder.buildReverseMatchScalar(scalar, boundaryCheck: boundaryCheck)
         } else {
           builder.buildMatchScalar(scalar, boundaryCheck: boundaryCheck)
@@ -279,7 +274,6 @@ fileprivate extension Compiler.ByteCodeGen {
     }
 
     if reverse {
-      builder.buildReverse(1)
       builder.buildReverseMatch(c, isCaseInsensitive: false)
     } else {
       builder.buildMatch(c, isCaseInsensitive: false)
@@ -388,6 +382,9 @@ fileprivate extension Compiler.ByteCodeGen {
 
     builder.buildSave(success)
     builder.buildSave(intercept)
+    if reverse {
+       builder.buildReverse(1)
+    }
     try emitNode(child)
     builder.buildClearThrough(intercept)
     builder.buildFail(preservingCaptures: true) // Lookahead succeeds here
@@ -417,6 +414,9 @@ fileprivate extension Compiler.ByteCodeGen {
 
     builder.buildSave(success)
     builder.buildSave(intercept)
+    if reverse {
+      builder.buildReverse(1)
+    }
     try emitNode(child)
     builder.buildClearThrough(intercept)
     builder.buildClear()
@@ -795,7 +795,6 @@ fileprivate extension Compiler.ByteCodeGen {
         return false
       }
       if reverse {
-        builder.buildReverse(1)
         builder.buildReverseQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
       } else {
         builder.buildQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
@@ -809,7 +808,6 @@ fileprivate extension Compiler.ByteCodeGen {
           return false
         }
         if reverse {
-          builder.buildReverse(1)
           builder.buildReverseQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
         } else {
           builder.buildQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
@@ -817,7 +815,6 @@ fileprivate extension Compiler.ByteCodeGen {
 
       case .any:
         if reverse {
-          builder.buildReverse(1)
           builder.buildReverseQuantifyAny(
             matchesNewlines: true, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
         } else {
@@ -826,7 +823,6 @@ fileprivate extension Compiler.ByteCodeGen {
         }
       case .anyNonNewline:
         if reverse {
-          builder.buildReverse(1)
           builder.buildReverseQuantifyAny(
             matchesNewlines: false, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
         } else {
@@ -835,7 +831,6 @@ fileprivate extension Compiler.ByteCodeGen {
         }
       case .dot:
         if reverse {
-          builder.buildReverse(1)
           builder.buildReverseQuantifyAny(
             matchesNewlines: options.dotMatchesNewline, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
         } else {
@@ -847,7 +842,6 @@ fileprivate extension Compiler.ByteCodeGen {
         // Custom character class that consumes a single grapheme
         let model = cc.asRuntimeModel(options)
         if reverse {
-          builder.buildReverse(1)
           builder.buildReverseQuantify(
             model: model,
             kind,
@@ -914,7 +908,6 @@ fileprivate extension Compiler.ByteCodeGen {
       guard let bitset = ccc.asAsciiBitset(options) else {
         return false
       }
-      builder.buildReverse(1)
       builder.buildReverseQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
 
     case .atom(let atom):
@@ -924,26 +917,21 @@ fileprivate extension Compiler.ByteCodeGen {
         guard let val = c._singleScalarAsciiValue else {
           return false
         }
-        builder.buildReverse(1)
         builder.buildReverseQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
 
       case .any:
-        builder.buildReverse(1)
         builder.buildReverseQuantifyAny(
           matchesNewlines: true, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
       case .anyNonNewline:
-        builder.buildReverse(1)
         builder.buildReverseQuantifyAny(
           matchesNewlines: false, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
       case .dot:
-        builder.buildReverse(1)
         builder.buildReverseQuantifyAny(
           matchesNewlines: options.dotMatchesNewline, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
 
       case .characterClass(let cc):
         // Custom character class that consumes a single grapheme
         let model = cc.asRuntimeModel(options)
-        builder.buildReverse(1)
         builder.buildReverseQuantify(
           model: model,
           kind,

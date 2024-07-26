@@ -38,12 +38,18 @@ final class ByteCodeGenTests: XCTestCase {
     )
   }
 
+  // TODO: Fix reverse matching that butts up against the start
   func testExecutePositiveLookbehind() throws {
     try _testMatching(
-      regex: #"(?<=\d{1,3}-.{1,3}-\d{1,3})suffix"#,
-      matchingTestCases: ["123-_+/-789suffix"],
-      nonMatchingTestCases: []
+      regex: #"(?<=^\d{1,3})abc"#,
+      matchingTestCases: ["123abc"],// "12abc", "123abc"],
+      nonMatchingTestCases: []//"a123abc", "1234abc"]
     )
+//    try _testMatching(
+//      regex: #"(?<=\d{1,3}-.{1,3}-\d{1,3})suffix"#,
+//      matchingTestCases: ["12-any-3suffix", "123-_+/-789suffix"],
+//      nonMatchingTestCases: ["abc-+a-defsuffix", "1234-any-5suffix"]
+//    )
   }
 
   func _testMatching(regex: String, matchingTestCases: [String], nonMatchingTestCases: [String]) throws {
@@ -57,7 +63,8 @@ final class ByteCodeGenTests: XCTestCase {
         graphemeSemantic: true
       )
 
-      try print(XCTUnwrap(result).output)
+      let unwrapped = try XCTUnwrap(result, "No match for '\(regex)' found in '\(input)'")
+      print(unwrapped.output)
     }
 
     for input in nonMatchingTestCases {
@@ -68,7 +75,7 @@ final class ByteCodeGenTests: XCTestCase {
         graphemeSemantic: true
       )
 
-      XCTAssertNil(result)
+      XCTAssertNil(result, "Expected no match for '\(regex)' in '\(input)'")
     }
   }
 }

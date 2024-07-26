@@ -262,7 +262,7 @@ extension Instruction {
     /// Quantifies the stored instruction in an inner loop instead of looping through instructions in processor
     /// Only quantifies specific nodes
     ///
-    ///     quantify(_:QuantifyPayload)
+    ///     reverseQuantify(_:QuantifyPayload)
     ///
     case reverseQuantify
     /// Begin the given capture

@@ -65,6 +65,13 @@ extension Instruction: CustomStringConvertible {
       } else {
         return "match char[\(reg)]"
       }
+    case .reverseMatch:
+      let (isCaseInsensitive, reg) = payload.elementPayload
+      if isCaseInsensitive {
+        return "reverseMatchCaseInsensitive char[\(reg)]"
+      } else {
+        return "reverseMatch char[\(reg)]"
+      }
     case .matchBitset:
       let (isScalar, reg) = payload.bitsetPayload
       if isScalar {
@@ -72,9 +79,19 @@ extension Instruction: CustomStringConvertible {
       } else {
         return "matchBitset bitset[\(reg)]"
       }
+    case .reverseMatchBitset:
+      let (isScalar, reg) = payload.bitsetPayload
+      if isScalar {
+        return "reverseMatchBitsetScalar bitset[\(reg)]"
+      } else {
+        return "reverseMatchBitset bitset[\(reg)]"
+      }
     case .matchBuiltin:
       let payload = payload.characterClassPayload
       return "matchBuiltin \(payload.cc) (\(payload.isInverted))"
+    case .reverseMatchBuiltin:
+      let payload = payload.characterClassPayload
+      return "\(opcode) \(payload.cc) (\(payload.isInverted))"
     case .matchBy:
       let (matcherReg, valReg) = payload.pairedMatcherValue
       return "\(opcode) match[\(matcherReg)] -> val[\(valReg)]"
@@ -99,6 +116,9 @@ extension Instruction: CustomStringConvertible {
       let (imm, reg) = payload.pairedImmediateInt
       return "\(opcode) \(imm) -> int[\(reg)]"
     case .quantify:
+      let payload = payload.quantify
+      return "\(opcode) \(payload.type) \(payload.minTrips) \(payload.maxExtraTrips?.description ?? "unbounded" )"
+    case .reverseQuantify:
       let payload = payload.quantify
       return "\(opcode) \(payload.type) \(payload.minTrips) \(payload.maxExtraTrips?.description ?? "unbounded" )"
     case .save:

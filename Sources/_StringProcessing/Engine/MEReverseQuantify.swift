@@ -44,7 +44,7 @@ extension Processor {
     }
   }
 
-  /// Generic quantify instruction interpreter
+  /// Generic bounded reverseQuantify instruction interpreter
   /// - Handles .eager and .posessive
   /// - Handles arbitrary minTrips and maxExtraTrips
   mutating func runReverseQuantify(_ payload: QuantifyPayload) -> Bool {
@@ -62,11 +62,14 @@ extension Processor {
       trips += 1
     }
 
+    // If we don't have any more trips to take:
     if maxExtraTrips == 0 {
       // We're done
       return true
     }
 
+    // We've already consumed the minimum number of characters,
+    // If we can't get another match, the reverse quantify was successful
     guard let previous = _doReverseQuantifyMatch(payload) else {
       return true
     }
@@ -118,12 +121,12 @@ extension Processor {
 
     // Create a quantified save point for every part of the input matched up
     // to the final position.
-    let rangeStart = currentPosition
-    var rangeEnd = currentPosition
+    var rangeStart = currentPosition
+    let rangeEnd = currentPosition
     currentPosition = previous
     while true {
       guard let previous = _doReverseQuantifyMatch(payload) else { break }
-      rangeEnd = currentPosition
+      rangeStart = currentPosition
       currentPosition = previous
     }
 

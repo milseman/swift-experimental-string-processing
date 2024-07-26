@@ -36,7 +36,6 @@ extension UInt8 {
   /// Assuming we're ASCII, whether we match `\d`
   var _asciiIsDigit: Bool {
     assert(_isASCII)
-    print((_0..._9).contains(self))
     return(_0..._9).contains(self)
   }
 
@@ -92,10 +91,12 @@ extension String {
     // TODO: fastUTF8 version
     assert(String.Index(idx, within: unicodeScalars) != nil)
     assert(idx <= end)
-    
+
+    // If the current index has reached the upper bound, there's no match
     if idx == end {
       return nil
     }
+
     let base = utf8[idx]
     guard base._isASCII else {
       assert(!self[idx].isASCII)
@@ -124,46 +125,46 @@ extension String {
   }
 
   /// TODO: better to take isScalarSemantics parameter, we can return more results
-  /// and we can give the right `next` index, not requiring the caller to re-adjust it
+  /// and we can give the right `previous` index, not requiring the caller to re-adjust it
   /// TODO: detailed description of nuanced semantics
   func _quickReverseASCIICharacter(
     at idx: Index,
     limitedBy start: Index
-  ) -> (first: UInt8, previous: Index, crLF: Bool)? {
+  ) -> (char: UInt8, previous: Index, crLF: Bool)? {
     // TODO: fastUTF8 version
     assert(String.Index(idx, within: unicodeScalars) != nil)
     assert(idx >= start)
 
-    guard idx != start else {
+    // Exit if we're at our limit
+    if idx == start {
       return nil
     }
 
-    let base = utf8[idx]
-    guard base._isASCII else {
+    let char = utf8[idx]
+    guard char._isASCII else {
       assert(!self[idx].isASCII)
       return nil
     }
 
     var previous = utf8.index(before: idx)
     if previous == start {
-      return (first: base, previous: previous, crLF: false)
+      return (char: char, previous: previous, crLF: false)
     }
 
     let head = utf8[previous]
     guard head._isSub300StartingByte else { return nil }
 
     // Handle CR-LF:
-    if base == ._carriageReturn && head == ._lineFeed {
+    if char == ._carriageReturn && head == ._lineFeed {
       utf8.formIndex(before: &previous)
       guard previous == start || utf8[previous]._isSub300StartingByte else {
         return nil
       }
-      return (first: base, previous: previous, crLF: true)
+      return (char: char, previous: previous, crLF: true)
     }
 
     assert(self[idx].isASCII && self[idx] != "\r\n")
-    print(String(decoding: [base], as: UTF8.self))
-    return (first: base, previous: previous, crLF: false)
+    return (char: char, previous: previous, crLF: false)
   }
 
   func _quickMatch(
@@ -227,8 +228,6 @@ extension String {
     }
 
     // TODO: bitvectors
-    print(String(decoding: [asciiValue], as: UTF8.self))
-    print(cc)
     switch cc {
     case .any, .anyGrapheme:
       return (previous, true)
