@@ -58,7 +58,15 @@ extension Processor {
         signalFailure()
         return false
       }
+
       currentPosition = previous
+
+      // If we've reached the start of the string but still have more trips, fail
+      if currentPosition == start, trips < payload.minTrips {
+        signalFailure()
+        return false
+      }
+
       trips += 1
     }
 
