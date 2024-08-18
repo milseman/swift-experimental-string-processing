@@ -227,8 +227,14 @@ public struct NegativeLookahead<Output>: _BuiltinRegexComponent {
   }
 }
 
-// TODO: Write header doc
-@available(SwiftStdlib 5.10, *)
+/// A regex component that allows a match to continue only if its contents
+/// match at the given location.
+///
+/// A lookbehind is a zero-length assertion that its included regex matches at
+/// a particular position. Lookbehinds do not advance the overall matching
+/// position in the input string — once a lookbehind succeeds, matching continues
+/// in the regex from the same position.
+@available(SwiftStdlib 5.7, *) // TODO: How should this be gated?
 public struct Lookbehind<Output>: _BuiltinRegexComponent {
   public var regex: Regex<Output>
 
@@ -251,8 +257,14 @@ public struct Lookbehind<Output>: _BuiltinRegexComponent {
   }
 }
 
-// TODO: Write header doc
-@available(SwiftStdlib 5.10, *)
+/// A regex component that allows a match to continue only if its contents
+/// do not match at the given location.
+///
+/// A negative lookbehind is a zero-length assertion that its included regex
+/// does not match at a particular position. Lookbehinds do not advance the
+/// overall matching position in the input string — once a lookbehind succeeds,
+/// matching continues in the regex from the same position.
+@available(SwiftStdlib 5.7, *) // TODO: How should this be gated?
 public struct NegativeLookbehind<Output>: _BuiltinRegexComponent {
   public var regex: Regex<Output>
 

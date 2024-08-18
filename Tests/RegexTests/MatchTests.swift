@@ -1575,27 +1575,29 @@ extension RegexTests {
       (input: "hezllo", match: nil),
       (input: "helloz", match: nil))
 
+    // MARK: Lookbehinds
     firstMatchTest(
-      #"(?<=USD)\d+"#, input: "Price: USD100", match: "100", xfail: true)
+      #"(?<=USD)\d+"#, input: "Price: USD100", match: "100")
     firstMatchTest(
-      #"(*plb:USD)\d+"#, input: "Price: USD100", match: "100", xfail: true)
+      #"(*plb:USD)\d+"#, input: "Price: USD100", match: "100")
     firstMatchTest(
       #"(*positive_lookbehind:USD)\d+"#,
-      input: "Price: USD100", match: "100", xfail: true)
-    // engines generally enforce that lookbehinds are fixed width
+      input: "Price: USD100", match: "100")
+
+    // TODO: Why is a match not found when unoptimized?
     firstMatchTest(
-      #"\d{3}(?<=USD\d{3})"#, input: "Price: USD100", match: "100", xfail: true)
+      #"\d{3}(?<=USD\d{3})"#, input: "Price: USD100", match: "100")
 
     firstMatchTest(
-      #"(?<!USD)\d+"#, input: "Price: JYP100", match: "100", xfail: true)
+      #"(?<!USD)\d+"#, input: "Price: JYP100", match: "100")
     firstMatchTest(
-      #"(*nlb:USD)\d+"#, input: "Price: JYP100", match: "100", xfail: true)
+      #"(*nlb:USD)\d+"#, input: "Price: JYP100", match: "100")
     firstMatchTest(
       #"(*negative_lookbehind:USD)\d+"#,
-      input: "Price: JYP100", match: "100", xfail: true)
-    // engines generally enforce that lookbehinds are fixed width
+      input: "Price: JYP100", match: "100")
+
     firstMatchTest(
-      #"\d{3}(?<!USD\d{3})"#, input: "Price: JYP100", match: "100", xfail: true)
+      #"\d{3}(?<!USD\d{3})"#, input: "Price: JYP100", match: "100")
   }
 
   func testMatchAnchors() throws {

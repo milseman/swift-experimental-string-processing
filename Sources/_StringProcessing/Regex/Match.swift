@@ -106,7 +106,6 @@ extension Regex {
   /// - Parameter string: The string to match this regular expression against.
   /// - Returns: The match, if this regex matches the entirety of `string`;
   ///   otherwise, `nil`.
-  // TODO: Reverse
   public func wholeMatch(in string: String) throws -> Regex<Output>.Match? {
     try _match(string, in: string.startIndex..<string.endIndex, mode: .wholeString)
   }
@@ -164,7 +163,6 @@ extension Regex {
   ///
   /// - Parameter string: The string to match this regular expression against.
   /// - Returns: The match, if one is found; otherwise, `nil`.
-  // TODO: Reverse
   public func firstMatch(in string: String) throws -> Regex<Output>.Match? {
     try _firstMatch(string, in: string.startIndex..<string.endIndex)
   }
@@ -199,7 +197,6 @@ extension Regex {
   ///   against.
   /// - Returns: The match, if this regex matches the entirety of `string`;
   ///   otherwise, `nil`.
-  // TODO: Reverse
   public func wholeMatch(in string: Substring) throws -> Regex<Output>.Match? {
     try _match(string.base, in: string.startIndex..<string.endIndex, mode: .wholeString)
   }
@@ -259,7 +256,6 @@ extension Regex {
   /// - Parameter string: The substring to match this regular expression
   ///   against.
   /// - Returns: The match, if one is found; otherwise, `nil`.
-  // TODO: Reverse
   public func firstMatch(in string: Substring) throws -> Regex<Output>.Match? {
     try _firstMatch(string.base, in: string.startIndex..<string.endIndex)
   }
@@ -304,7 +300,6 @@ extension BidirectionalCollection where SubSequence == Substring {
   /// - Parameter regex: The regular expression to match.
   /// - Returns: The match, if one is found. If there is no match, or a
   ///   transformation in `regex` throws an error, this method returns `nil`.
-  // TODO: Reverse
   public func wholeMatch<R: RegexComponent>(
     of regex: R
   ) -> Regex<R.RegexOutput>.Match? {
