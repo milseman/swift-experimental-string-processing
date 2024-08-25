@@ -182,7 +182,7 @@ extension String {
       : (substr.first!, substr.endIndex)
   }
 
-  /// Returns the character at `pos`, bounded by `start`, as well as the upper
+  /// Returns the character at `pos`, bounded by `start`, as well as the lower
   /// boundary of the returned character.
   ///
   /// This function handles loading a character from a string while respecting
@@ -202,7 +202,7 @@ extension String {
   ///   - pos: The position to load a character from.
   ///   - start: The limit for the character at `pos`.
   /// - Returns: The character at `pos`, bounded by `start`, if it exists, along
-  ///   with the upper bound of that character. The upper bound is always
+  ///   with the lower bound of that character. The lower bound is always
   ///   scalar-aligned.
   func characterAndStart(at pos: String.Index, limitedBy start: String.Index) -> (Character, String.Index)? {
     // FIXME: Sink into the stdlib to avoid multiple boundary calculations

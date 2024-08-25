@@ -1576,8 +1576,9 @@ extension RegexTests {
       (input: "hzello", match: "e"),
       (input: "hezllo", match: nil),
       (input: "helloz", match: nil))
+  }
 
-    // MARK: Lookbehinds
+  func testLookbehinds() {
     firstMatchTest(
       #"(?<=USD)\d+"#, input: "Price: USD100", match: "100")
     firstMatchTest(

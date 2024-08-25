@@ -125,9 +125,9 @@ fileprivate extension Compiler.ByteCodeGen {
         let boundaryCheck = idx == lastIdx
         let scalar = s.unicodeScalars[idx]
         if options.isCaseInsensitive && scalar.properties.isCased {
-          builder.buildMatchScalarCaseInsensitive(scalar, boundaryCheck: boundaryCheck)
+          builder.buildMatchScalarCaseInsensitive(scalar, boundaryCheck: boundaryCheck, reverse: false)
         } else {
-          builder.buildMatchScalar(scalar, boundaryCheck: boundaryCheck)
+          builder.buildMatchScalar(scalar, boundaryCheck: boundaryCheck, reverse: false)
         }
       }
       return
@@ -153,9 +153,9 @@ fileprivate extension Compiler.ByteCodeGen {
         let boundaryCheck = idx == lastIdx
         let scalar = s.unicodeScalars[idx]
         if options.isCaseInsensitive && scalar.properties.isCased {
-          builder.buildReverseMatchScalarCaseInsensitive(scalar, boundaryCheck: boundaryCheck)
+          builder.buildMatchScalarCaseInsensitive(scalar, boundaryCheck: boundaryCheck, reverse: true)
         } else {
-          builder.buildReverseMatchScalar(scalar, boundaryCheck: boundaryCheck)
+          builder.buildMatchScalar(scalar, boundaryCheck: boundaryCheck, reverse: true)
         }
       }
       return
@@ -207,24 +207,15 @@ fileprivate extension Compiler.ByteCodeGen {
   }
 
   mutating func emitCharacterClass(_ cc: DSLTree.Atom.CharacterClass) {
-    builder.buildMatchBuiltin(model: cc.asRuntimeModel(options))
+    builder.buildMatchBuiltin(model: cc.asRuntimeModel(options), reverse: reverse)
   }
 
   mutating func emitMatchScalar(_ s: UnicodeScalar) {
     assert(options.semanticLevel == .unicodeScalar)
     if options.isCaseInsensitive && s.properties.isCased {
-      builder.buildMatchScalarCaseInsensitive(s, boundaryCheck: false)
+      builder.buildMatchScalarCaseInsensitive(s, boundaryCheck: false, reverse: reverse)
     } else {
-      builder.buildMatchScalar(s, boundaryCheck: false)
-    }
-  }
-
-  mutating func emitReverseMatchScalar(_ s: UnicodeScalar) {
-    assert(options.semanticLevel == .unicodeScalar)
-    if options.isCaseInsensitive && s.properties.isCased {
-      builder.buildReverseMatchScalarCaseInsensitive(s, boundaryCheck: false)
-    } else {
-      builder.buildReverseMatchScalar(s, boundaryCheck: false)
+      builder.buildMatchScalar(s, boundaryCheck: false, reverse: reverse)
     }
   }
 
@@ -232,11 +223,7 @@ fileprivate extension Compiler.ByteCodeGen {
     // Unicode scalar mode matches the specific scalars that comprise a character
     if options.semanticLevel == .unicodeScalar {
       for scalar in c.unicodeScalars {
-        if reverse {
-          emitReverseMatchScalar(scalar)
-        } else {
-          emitMatchScalar(scalar)
-        }
+        emitMatchScalar(scalar)
       }
       return
     }
@@ -248,13 +235,10 @@ fileprivate extension Compiler.ByteCodeGen {
         assert(c.unicodeScalars.count == 1)
         builder.buildMatchScalarCaseInsensitive(
           c.unicodeScalars.last!,
-          boundaryCheck: true)
+          boundaryCheck: true,
+          reverse: reverse)
       } else {
-        if reverse {
-          builder.buildReverseMatch(c, isCaseInsensitive: true)
-        } else {
-          builder.buildMatch(c, isCaseInsensitive: true)
-        }
+        builder.buildMatch(c, isCaseInsensitive: true, reverse: reverse)
       }
       return
     }
@@ -264,20 +248,12 @@ fileprivate extension Compiler.ByteCodeGen {
       for idx in c.unicodeScalars.indices {
         let scalar = c.unicodeScalars[idx]
         let boundaryCheck = idx == lastIdx
-        if reverse {
-          builder.buildReverseMatchScalar(scalar, boundaryCheck: boundaryCheck)
-        } else {
-          builder.buildMatchScalar(scalar, boundaryCheck: boundaryCheck)
-        }
+        builder.buildMatchScalar(scalar, boundaryCheck: boundaryCheck, reverse: reverse)
       }
       return
     }
 
-    if reverse {
-      builder.buildReverseMatch(c, isCaseInsensitive: false)
-    } else {
-      builder.buildMatch(c, isCaseInsensitive: false)
-    }
+    builder.buildMatch(c, isCaseInsensitive: false, reverse: reverse)
   }
 
   mutating func emitAny() {
@@ -292,9 +268,9 @@ fileprivate extension Compiler.ByteCodeGen {
   mutating func emitAnyNonNewline() {
     switch options.semanticLevel {
     case .graphemeCluster:
-      builder.buildConsumeNonNewline()
+      builder.buildConsumeNonNewline(reverse: reverse)
     case .unicodeScalar:
-      builder.buildConsumeScalarNonNewline()
+      builder.buildConsumeScalarNonNewline(reverse: reverse)
     }
   }
 
@@ -794,11 +770,8 @@ fileprivate extension Compiler.ByteCodeGen {
       guard let bitset = ccc.asAsciiBitset(options) else {
         return false
       }
-      if reverse {
-        builder.buildReverseQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-      } else {
-        builder.buildQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-      }
+
+      builder.buildQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics, reverse: reverse)
 
     case .atom(let atom):
       switch atom {
@@ -807,154 +780,45 @@ fileprivate extension Compiler.ByteCodeGen {
         guard let val = c._singleScalarAsciiValue else {
           return false
         }
-        if reverse {
-          builder.buildReverseQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        } else {
-          builder.buildQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        }
+        builder.buildQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics, reverse: reverse)
 
       case .any:
-        if reverse {
-          builder.buildReverseQuantifyAny(
-            matchesNewlines: true, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        } else {
-          builder.buildQuantifyAny(
-            matchesNewlines: true, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        }
+        builder.buildQuantifyAny(
+          matchesNewlines: true, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics, reverse: reverse)
       case .anyNonNewline:
-        if reverse {
-          builder.buildReverseQuantifyAny(
-            matchesNewlines: false, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        } else {
-          builder.buildQuantifyAny(
-            matchesNewlines: false, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        }
+        builder.buildQuantifyAny(
+          matchesNewlines: false, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics, reverse: reverse)
       case .dot:
-        if reverse {
-          builder.buildReverseQuantifyAny(
-            matchesNewlines: options.dotMatchesNewline, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        } else {
-          builder.buildQuantifyAny(
-            matchesNewlines: options.dotMatchesNewline, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-        }
+        builder.buildQuantifyAny(
+          matchesNewlines: options.dotMatchesNewline, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics, reverse: reverse)
 
       case .characterClass(let cc):
         // Custom character class that consumes a single grapheme
         let model = cc.asRuntimeModel(options)
-        if reverse {
-          builder.buildReverseQuantify(
-            model: model,
-            kind,
-            minTrips,
-            maxExtraTrips,
-            isScalarSemantics: isScalarSemantics
-          )
-        } else {
-          builder.buildQuantify(
-            model: model,
-            kind,
-            minTrips,
-            maxExtraTrips,
-            isScalarSemantics: isScalarSemantics
-          )
-        }
-      default:
-        return false
-      }
-    case .convertedRegexLiteral(let node, _):
-      if reverse {
-        return tryEmitFastReverseQuant(node, kind, minTrips, maxExtraTrips)
-      } else {
-        return tryEmitFastQuant(node, kind, minTrips, maxExtraTrips)
-      }
-    case .nonCapturingGroup(let groupKind, let node):
-      // .nonCapture nonCapturingGroups are ignored during compilation
-      guard groupKind.ast == .nonCapture else {
-        return false
-      }
-      if reverse {
-        return tryEmitFastReverseQuant(node, kind, minTrips, maxExtraTrips)
-      } else {
-        return tryEmitFastQuant(node, kind, minTrips, maxExtraTrips)
-      }
-    default:
-      return false
-    }
-    return true
-  }
-
-  /// Specialized quantification instruction for repetition of certain nodes in grapheme semantic mode
-  /// Allowed nodes are:
-  /// - single ascii scalar .char
-  /// - ascii .customCharacterClass
-  /// - single grapheme consumgin built in character classes
-  /// - .any, .anyNonNewline, .dot
-  mutating func tryEmitFastReverseQuant(
-    _ child: DSLTree.Node,
-    _ kind: AST.Quantification.Kind,
-    _ minTrips: Int,
-    _ maxExtraTrips: Int?
-  ) -> Bool {
-    let isScalarSemantics = options.semanticLevel == .unicodeScalar
-    guard optimizationsEnabled
-            && minTrips <= QuantifyPayload.maxStorableTrips
-            && maxExtraTrips ?? 0 <= QuantifyPayload.maxStorableTrips
-            && kind != .reluctant else {
-      return false
-    }
-    switch child {
-    case .customCharacterClass(let ccc):
-      // ascii only custom character class
-      guard let bitset = ccc.asAsciiBitset(options) else {
-        return false
-      }
-      builder.buildReverseQuantify(bitset: bitset, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-
-    case .atom(let atom):
-      switch atom {
-      case .char(let c):
-        // Single scalar ascii value character
-        guard let val = c._singleScalarAsciiValue else {
-          return false
-        }
-        builder.buildReverseQuantify(asciiChar: val, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-
-      case .any:
-        builder.buildReverseQuantifyAny(
-          matchesNewlines: true, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-      case .anyNonNewline:
-        builder.buildReverseQuantifyAny(
-          matchesNewlines: false, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-      case .dot:
-        builder.buildReverseQuantifyAny(
-          matchesNewlines: options.dotMatchesNewline, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics)
-
-      case .characterClass(let cc):
-        // Custom character class that consumes a single grapheme
-        let model = cc.asRuntimeModel(options)
-        builder.buildReverseQuantify(
+        builder.buildQuantify(
           model: model,
           kind,
           minTrips,
           maxExtraTrips,
-          isScalarSemantics: isScalarSemantics)
+          isScalarSemantics: isScalarSemantics,
+          reverse: reverse
+        )
       default:
         return false
       }
     case .convertedRegexLiteral(let node, _):
-      return tryEmitFastReverseQuant(node, kind, minTrips, maxExtraTrips)
+      return tryEmitFastQuant(node, kind, minTrips, maxExtraTrips)
     case .nonCapturingGroup(let groupKind, let node):
       // .nonCapture nonCapturingGroups are ignored during compilation
       guard groupKind.ast == .nonCapture else {
         return false
       }
-      return tryEmitFastReverseQuant(node, kind, minTrips, maxExtraTrips)
+      return tryEmitFastQuant(node, kind, minTrips, maxExtraTrips)
     default:
       return false
     }
     return true
   }
-
 
   /// Coalesce any adjacent scalar members in a custom character class together.
   /// This is required in order to produce correct grapheme matching behavior.
@@ -1505,51 +1369,6 @@ extension DSLTree.Node {
     default: return false
     }
   }
-
-  /// A Boolean value indicating whether this node reverses the match position
-  /// on a successful match.
-  ///
-  /// For example, an alternation like `(a|b|c)` always advances the position
-  /// by a character, but `(a|b|)` has an empty branch, which matches without
-  /// advancing.
-  var guaranteesBackwardProgress: Bool {
-    switch self {
-    case .orderedChoice(let children):
-      return children.allSatisfy { $0.guaranteesBackwardProgress }
-    case .concatenation(let children):
-      return children.contains(where: { $0.guaranteesBackwardProgress })
-    case .capture(_, _, let node, _):
-      return node.guaranteesBackwardProgress
-    case .nonCapturingGroup(let kind, let child):
-      switch kind.ast {
-      case .lookahead, .negativeLookahead, .lookbehind, .negativeLookbehind:
-        return false
-      default: return child.guaranteesBackwardProgress
-      }
-    case .atom(let atom):
-      switch atom {
-      case .changeMatchingOptions, .assertion: return false
-        // Captures may be nil so backreferences may be zero length matches
-      case .backreference: return false
-      default: return true
-      }
-    case .trivia, .empty:
-      return false
-    case .quotedLiteral(let string):
-      return !string.isEmpty
-    case .convertedRegexLiteral(let node, _):
-      return node.guaranteesBackwardProgress
-    case .consumer, .matcher:
-      // Allow zero width consumers and matchers
-      return false
-    case .customCharacterClass(let ccc):
-      return ccc.guaranteesBackwardProgress
-    case .quantification(let amount, _, let child):
-      let (atLeast, _) = amount.ast.bounds
-      return atLeast ?? 0 > 0 && child.guaranteesBackwardProgress
-    default: return false
-    }
-  }
 }
 
 extension DSLTree.CustomCharacterClass {
@@ -1566,26 +1385,6 @@ extension DSLTree.CustomCharacterClass {
         return lhs.guaranteesForwardProgress
       case let .symmetricDifference(lhs, rhs):
         return lhs.guaranteesForwardProgress && rhs.guaranteesForwardProgress
-      default:
-        return true
-      }
-    }
-    return false
-  }
-
-  /// We allow trivia into CustomCharacterClass, which could result in a CCC
-  /// that matches nothing, ie `(?x)[ ]`.
-  var guaranteesBackwardProgress: Bool {
-    for m in members {
-      switch m {
-      case .trivia:
-        continue
-      case let .intersection(lhs, rhs):
-        return lhs.guaranteesBackwardProgress && rhs.guaranteesBackwardProgress
-      case let .subtraction(lhs, _):
-        return lhs.guaranteesBackwardProgress
-      case let .symmetricDifference(lhs, rhs):
-        return lhs.guaranteesBackwardProgress && rhs.guaranteesBackwardProgress
       default:
         return true
       }

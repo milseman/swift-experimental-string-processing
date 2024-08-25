@@ -167,46 +167,30 @@ extension MEProgram.Builder {
       .init(.advance, .init(distance: n, isScalarDistance: true)))
   }
 
-  mutating func buildConsumeNonNewline() {
-    instructions.append(.init(.matchAnyNonNewline, .init(isScalar: false)))
+  mutating func buildConsumeNonNewline(reverse: Bool) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatchAnyNonNewline : .matchAnyNonNewline
+    instructions.append(.init(opcode, .init(isScalar: false)))
   }
 
-  mutating func buildReverseConsumeNonNewline() {
-    instructions.append(.init(.reverseMatchAnyNonNewline, .init(isScalar: false)))
+  mutating func buildConsumeScalarNonNewline(reverse: Bool) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatchAnyNonNewline : .matchAnyNonNewline
+    instructions.append(.init(opcode, .init(isScalar: true)))
   }
 
-  mutating func buildConsumeScalarNonNewline() {
-    instructions.append(.init(.matchAnyNonNewline, .init(isScalar: true)))
-  }
-
-  mutating func buildReverseConsumeScalarNonNewline() {
-    instructions.append(.init(.reverseMatchAnyNonNewline, .init(isScalar: true)))
-  }
-
-  mutating func buildMatch(_ e: Character, isCaseInsensitive: Bool) {
+  mutating func buildMatch(_ e: Character, isCaseInsensitive: Bool, reverse: Bool) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatch : .match
     instructions.append(.init(
-      .match, .init(element: elements.store(e), isCaseInsensitive: isCaseInsensitive)))
+      opcode, .init(element: elements.store(e), isCaseInsensitive: isCaseInsensitive)))
   }
 
-  mutating func buildReverseMatch(_ e: Character, isCaseInsensitive: Bool) {
-    instructions.append(.init(
-      .reverseMatch, .init(element: elements.store(e), isCaseInsensitive: isCaseInsensitive)))
+  mutating func buildMatchScalar(_ s: Unicode.Scalar, boundaryCheck: Bool, reverse: Bool) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatchScalar : .matchScalar
+    instructions.append(.init(opcode, .init(scalar: s, caseInsensitive: false, boundaryCheck: boundaryCheck)))
   }
 
-  mutating func buildMatchScalar(_ s: Unicode.Scalar, boundaryCheck: Bool) {
-    instructions.append(.init(.matchScalar, .init(scalar: s, caseInsensitive: false, boundaryCheck: boundaryCheck)))
-  }
-
-  mutating func buildMatchScalarCaseInsensitive(_ s: Unicode.Scalar, boundaryCheck: Bool) {
-    instructions.append(.init(.matchScalar, .init(scalar: s, caseInsensitive: true, boundaryCheck: boundaryCheck)))
-  }
-
-  mutating func buildReverseMatchScalar(_ s: Unicode.Scalar, boundaryCheck: Bool) {
-    instructions.append(.init(.reverseMatchScalar, .init(scalar: s, caseInsensitive: false, boundaryCheck: boundaryCheck)))
-  }
-
-  mutating func buildReverseMatchScalarCaseInsensitive(_ s: Unicode.Scalar, boundaryCheck: Bool) {
-    instructions.append(.init(.reverseMatchScalar, .init(scalar: s, caseInsensitive: true, boundaryCheck: boundaryCheck)))
+  mutating func buildMatchScalarCaseInsensitive(_ s: Unicode.Scalar, boundaryCheck: Bool, reverse: Bool) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatchScalar : .matchScalar
+    instructions.append(.init(opcode, .init(scalar: s, caseInsensitive: true, boundaryCheck: boundaryCheck)))
   }
 
   mutating func buildMatchAsciiBitset(
@@ -223,14 +207,10 @@ extension MEProgram.Builder {
       .matchBitset, .init(bitset: makeAsciiBitset(b), isScalar: true)))
   }
 
-  mutating func buildMatchBuiltin(model: _CharacterClassModel) {
+  mutating func buildMatchBuiltin(model: _CharacterClassModel, reverse: Bool) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatchBuiltin : .matchBuiltin
     instructions.append(.init(
-      .matchBuiltin, .init(model)))
-  }
-
-  mutating func buildReverseMatchBuiltin(model: _CharacterClassModel) {
-    instructions.append(.init(
-      .reverseMatchBuiltin, .init(model)))
+      opcode, .init(model)))
   }
 
   mutating func buildConsume(
@@ -263,22 +243,12 @@ extension MEProgram.Builder {
     _ kind: AST.Quantification.Kind,
     _ minTrips: Int,
     _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
+    isScalarSemantics: Bool,
+    reverse: Bool
   ) {
+    let opcode = reverse ? Instruction.OpCode.reverseQuantify : .quantify
     instructions.append(.init(
-      .quantify,
-      .init(quantify: .init(bitset: makeAsciiBitset(bitset), kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
-  }
-
-  mutating func buildReverseQuantify(
-    bitset: DSLTree.CustomCharacterClass.AsciiBitset,
-    _ kind: AST.Quantification.Kind,
-    _ minTrips: Int,
-    _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
-  ) {
-    instructions.append(.init(
-      .reverseQuantify,
+      opcode,
       .init(quantify: .init(bitset: makeAsciiBitset(bitset), kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
@@ -287,22 +257,12 @@ extension MEProgram.Builder {
     _ kind: AST.Quantification.Kind,
     _ minTrips: Int,
     _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
+    isScalarSemantics: Bool,
+    reverse: Bool
   ) {
+    let opcode = reverse ? Instruction.OpCode.reverseQuantify : .quantify
     instructions.append(.init(
-      .quantify,
-      .init(quantify: .init(asciiChar: asciiChar, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
-  }
-
-  mutating func buildReverseQuantify(
-    asciiChar: UInt8,
-    _ kind: AST.Quantification.Kind,
-    _ minTrips: Int,
-    _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
-  ) {
-    instructions.append(.init(
-      .reverseQuantify,
+      opcode,
       .init(quantify: .init(asciiChar: asciiChar, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
@@ -311,22 +271,12 @@ extension MEProgram.Builder {
     _ kind: AST.Quantification.Kind,
     _ minTrips: Int,
     _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
+    isScalarSemantics: Bool,
+    reverse: Bool
   ) {
+    let opcode = reverse ? Instruction.OpCode.reverseQuantify : .quantify
     instructions.append(.init(
-      .quantify,
-      .init(quantify: .init(matchesNewlines: matchesNewlines, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
-  }
-
-  mutating func buildReverseQuantifyAny(
-    matchesNewlines: Bool,
-    _ kind: AST.Quantification.Kind,
-    _ minTrips: Int,
-    _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
-  ) {
-    instructions.append(.init(
-      .reverseQuantify,
+      opcode,
       .init(quantify: .init(matchesNewlines: matchesNewlines, kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
@@ -335,22 +285,12 @@ extension MEProgram.Builder {
     _ kind: AST.Quantification.Kind,
     _ minTrips: Int,
     _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
+    isScalarSemantics: Bool,
+    reverse: Bool
   ) {
+    let opcode = reverse ? Instruction.OpCode.reverseQuantify : .quantify
     instructions.append(.init(
-      .quantify,
-      .init(quantify: .init(model: model,kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
-  }
-
-  mutating func buildReverseQuantify(
-    model: _CharacterClassModel,
-    _ kind: AST.Quantification.Kind,
-    _ minTrips: Int,
-    _ maxExtraTrips: Int?,
-    isScalarSemantics: Bool
-  ) {
-    instructions.append(.init(
-      .reverseQuantify,
+      opcode,
       .init(quantify: .init(model: model,kind, minTrips, maxExtraTrips, isScalarSemantics: isScalarSemantics))))
   }
 
