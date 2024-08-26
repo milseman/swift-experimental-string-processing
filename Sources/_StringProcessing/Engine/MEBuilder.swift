@@ -194,17 +194,21 @@ extension MEProgram.Builder {
   }
 
   mutating func buildMatchAsciiBitset(
-    _ b: DSLTree.CustomCharacterClass.AsciiBitset
+    _ b: DSLTree.CustomCharacterClass.AsciiBitset,
+    reverse: Bool
   ) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatchBitset : .matchBitset
     instructions.append(.init(
-      .matchBitset, .init(bitset: makeAsciiBitset(b), isScalar: false)))
+      opcode, .init(bitset: makeAsciiBitset(b), isScalar: false)))
   }
 
   mutating func buildScalarMatchAsciiBitset(
-    _ b: DSLTree.CustomCharacterClass.AsciiBitset
+    _ b: DSLTree.CustomCharacterClass.AsciiBitset,
+    reverse: Bool
   ) {
+    let opcode = reverse ? Instruction.OpCode.reverseMatchBitset : .matchBitset
     instructions.append(.init(
-      .matchBitset, .init(bitset: makeAsciiBitset(b), isScalar: true)))
+      opcode, .init(bitset: makeAsciiBitset(b), isScalar: true)))
   }
 
   mutating func buildMatchBuiltin(model: _CharacterClassModel, reverse: Bool) {

@@ -1587,9 +1587,8 @@ extension RegexTests {
       #"(*positive_lookbehind:USD)\d+"#,
       input: "Price: USD100", match: "100")
 
-    // TODO: Why is a match not found when unoptimized?
     firstMatchTest(
-      #"\d{3}(?<=USD\d{3})"#, input: "Price: USD100", match: "100", validateOptimizations: false)
+      #"\d{3}(?<=USD\d{3})"#, input: "Price: USD100", match: "100")
 
     firstMatchTest(
       #"(?<!USD)\d+"#, input: "Price: JYP100", match: "100")
@@ -1602,33 +1601,34 @@ extension RegexTests {
     firstMatchTest(
       #"\d{3}(?<!USD\d{3})"#, input: "Price: JYP100", match: "100")
 
-    firstMatchTest(#"(?<=abc)def"#, input: "abcdefg", match: "def", validateOptimizations: false)
-    firstMatchTests(
-      #"(?<=az|b|c)def"#,
-      ("azdefg", "def"),
-      ("bdefg", "def"),
-      ("cdefg", "def"),
-      ("123defg", nil),
-      validateOptimizations: false
-    )
+    firstMatchTest(#"(?<=abc)def"#, input: "abcdefg", match: "def")
+   firstMatchTests(
+     #"(?<=az|b|c)def"#,
+     ("azdefg", "def"),
+     ("bdefg", "def"),
+     ("cdefg", "def"),
+     ("123defg", nil),
+     validateOptimizations: false
+   )
 
-    // FIXME: quickMatch and thoroughMatch have different results
-    firstMatchTest(
-      #"(?<=\d{1,3}-.{1,3}-\d{1,3})suffix"#,
-      input: "123-_+/-789suffix",
-      match: "suffix",
-      validateOptimizations: false
-    )
+   firstMatchTest(#"abcd(?<=bc(?=d).)"#, input: "abcdefg", match: "abcd")
 
-    firstMatchTests(
-      #"(?<=^\d{1,3})abc"#,
-      ("123abc", "abc"),
-      ("12abc", "abc"),
-      ("1abc", "abc"),
-      ("1234abc", nil), // FIXME: Shouldn't match but does because `^` assertions are broken
-      ("z123abc", nil), // FIXME: Same as above
-      validateOptimizations: false
-    )
+// FIXME: quickMatch and thoroughMatch have different results
+//    firstMatchTest(
+//      #"(?<=\d{1,3}-.{1,3}-\d{1,3})suffix"#,
+//      input: "123-_+/-789suffix",
+//      match: "suffix",
+//      validateOptimizations: false
+//    )
+
+   firstMatchTests(
+     #"(?<=^\d{1,3})abc"#,
+     ("123abc", "abc"),
+     ("12abc", "abc"),
+     ("1abc", "abc"),
+     ("1234abc", nil), // FIXME: Shouldn't match but does because `^` assertions are broken
+     ("z123abc", nil) // FIXME: Same as above
+   )
   }
 
   func testMatchAnchors() throws {

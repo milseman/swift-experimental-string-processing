@@ -109,6 +109,7 @@ fileprivate extension Compiler.ByteCodeGen {
   }
 
   mutating func emitQuotedLiteral(_ s: String) {
+    assert(!reverse)
     guard options.semanticLevel == .graphemeCluster else {
       for char in s {
         for scalar in char.unicodeScalars {
@@ -137,6 +138,7 @@ fileprivate extension Compiler.ByteCodeGen {
   }
 
   mutating func emitReverseQuotedLiteral(_ s: String) {
+    assert(reverse)
     guard options.semanticLevel == .graphemeCluster else {
       for char in s {
         for scalar in char.unicodeScalars.reversed() {
@@ -408,13 +410,14 @@ fileprivate extension Compiler.ByteCodeGen {
     _ kind: (forwards: Bool, positive: Bool),
     _ child: DSLTree.Node
   ) throws {
+    let previousReverse = reverse
     reverse = !kind.forwards
     if kind.positive {
       try emitPositiveLookaround(child)
     } else {
       try emitNegativeLookaround(child)
     }
-    reverse = false
+    reverse = previousReverse
   }
 
   mutating func emitAtomicNoncapturingGroup(
@@ -1116,9 +1119,9 @@ fileprivate extension Compiler.ByteCodeGen {
     if let asciiBitset = ccc.asAsciiBitset(options),
         optimizationsEnabled {
       if options.semanticLevel == .unicodeScalar {
-        builder.buildScalarMatchAsciiBitset(asciiBitset)
+        builder.buildScalarMatchAsciiBitset(asciiBitset, reverse: reverse)
       } else {
-        builder.buildMatchAsciiBitset(asciiBitset)
+        builder.buildMatchAsciiBitset(asciiBitset, reverse: reverse)
       }
       return
     }
