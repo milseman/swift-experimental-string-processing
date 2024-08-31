@@ -43,7 +43,7 @@ func _firstMatch(
   validateOptimizations: Bool,
   semanticLevel: RegexSemanticLevel = .graphemeCluster,
   syntax: SyntaxOptions = .traditional
-) throws -> (String, [String?])? {
+) throws -> (match: String, captures: [String?])? {
   var regex = try Regex(regexStr, syntax: syntax).matchingSemantics(semanticLevel)
   let result = try regex.firstMatch(in: input)
   
@@ -160,7 +160,7 @@ func _firstMatch(
   }
   
   guard let result = result else { return nil }
-  let caps = result.output.slices(from: input)
+  let caps = result.output.slices(from: input).dropFirst()
   return (String(input[result.range]), caps.map { $0.map(String.init) })
 }
 
@@ -192,8 +192,6 @@ func flatCaptureTest(
           throw MatchError("Match failed")
         }
       }
-      // Peel off the whole match.
-      caps.removeFirst()
       guard let expect = expect else {
         throw MatchError("""
             Match of \(test) succeeded where failure expected in \(regex)
