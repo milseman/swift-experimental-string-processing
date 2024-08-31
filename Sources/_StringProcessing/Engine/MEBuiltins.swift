@@ -334,6 +334,7 @@ extension String {
     return next
   }
 
+
   @inline(never)
   private func _thoroughReverseMatchAnyNonNewline(
     at currentPosition: String.Index,
@@ -351,6 +352,27 @@ extension String {
           !char.isNewline
     else { return nil }
     return previous
+  }
+}
+
+
+  internal func matchRegexDot(
+    at currentPosition: Index,
+    limitedBy end: Index,
+    anyMatchesNewline: Bool,
+    isScalarSemantics: Bool
+  ) -> Index? {
+    guard currentPosition < end else { return nil }
+
+    if anyMatchesNewline {
+      return index(
+        after: currentPosition, isScalarSemantics: isScalarSemantics)
+    }
+
+    return matchAnyNonNewline(
+      at: currentPosition,
+      limitedBy: end,
+      isScalarSemantics: isScalarSemantics)
   }
 }
 
