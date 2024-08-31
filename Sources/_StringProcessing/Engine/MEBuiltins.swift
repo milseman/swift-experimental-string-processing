@@ -353,8 +353,6 @@ extension String {
     else { return nil }
     return previous
   }
-}
-
 
   internal func matchRegexDot(
     at currentPosition: Index,

@@ -16,12 +16,12 @@ extension Processor {
         limitedBy: start,
         boundaryCheck: !isScalarSemantics,
         isCaseInsensitive: false)
-    case .builtin:
+    case .builtinCC:
       guard currentPosition >= start else { return nil }
 
       // We only emit .quantify if it consumes a single character
       return input.reverseMatchBuiltinCC(
-        payload.builtin,
+        payload.builtinCC,
         at: currentPosition,
         limitedBy: start,
         isInverted: payload.builtinIsInverted,
