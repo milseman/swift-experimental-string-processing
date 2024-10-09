@@ -42,9 +42,11 @@ struct SplitCollection<Searcher: CollectionSearcher> {
 
 extension SplitCollection: Sequence {
   public struct Iterator: IteratorProtocol {
-    let base: Base
-    var index: Base.Index
     var ranges: RangesSequence<Searcher>.Iterator
+    var index: Base.Index
+
+    var input: Base { ranges.base.input }
+
     var maxSplits: Int
     var omittingEmptySubsequences: Bool
 
@@ -56,8 +58,7 @@ extension SplitCollection: Sequence {
       maxSplits: Int,
       omittingEmptySubsequences: Bool
     ) {
-      self.base = ranges.input
-      self.index = base.startIndex
+      self.index = ranges.input.startIndex
       self.ranges = ranges.makeIterator()
       self.maxSplits = maxSplits
       self.omittingEmptySubsequences = omittingEmptySubsequences
@@ -70,12 +71,12 @@ extension SplitCollection: Sequence {
       /// empty subsequences.
       func finish() -> Base.SubSequence? {
         isDone = true
-        return index == base.endIndex && omittingEmptySubsequences
+        return index == input.endIndex && omittingEmptySubsequences
           ? nil
-          : base[index...]
+          : input[index...]
       }
       
-      if index == base.endIndex {
+      if index == input.endIndex {
         return finish()
       }
       
@@ -96,7 +97,7 @@ extension SplitCollection: Sequence {
         }
         
         splitCounter += 1
-        return base[index..<range.lowerBound]
+        return input[index..<range.lowerBound]
       }
     }
   }
