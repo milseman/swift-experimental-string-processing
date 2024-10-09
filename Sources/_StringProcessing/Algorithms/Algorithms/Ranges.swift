@@ -163,8 +163,8 @@ extension Collection where Element: Equatable {
 }
 
 @available(SwiftStdlib 5.7, *)
-struct RegexRangesCollection<Output> {
-  let base: RegexMatchesCollection<Output>
+struct RegexRangesSequence<Output> {
+  let base: RegexMatchesSequence<Output>
 
   init(
     input: String,
@@ -181,9 +181,9 @@ struct RegexRangesCollection<Output> {
 }
 
 @available(SwiftStdlib 5.7, *)
-extension RegexRangesCollection: Sequence {
+extension RegexRangesSequence: Sequence {
   struct Iterator: IteratorProtocol {
-    var matchesBase: RegexMatchesCollection<Output>.Iterator
+    var matchesBase: RegexMatchesSequence<Output>.Iterator
     
     mutating func next() -> Range<String.Index>? {
       matchesBase.next().map(\.range)
@@ -195,16 +195,6 @@ extension RegexRangesCollection: Sequence {
   }
 }
 
-@available(SwiftStdlib 5.7, *)
-extension RegexRangesCollection: Collection {
-  typealias Index = RegexMatchesCollection<Output>.Index
-
-  var startIndex: Index { base.startIndex }
-  var endIndex: Index { base.endIndex }
-  func index(after i: Index) -> Index { base.index(after: i) }
-  subscript(position: Index) -> Range<String.Index> { base[position].range }
-}
-
 // MARK: Regex algorithms
 
 extension Collection where SubSequence == Substring {
@@ -214,8 +204,8 @@ extension Collection where SubSequence == Substring {
     of regex: R,
     subjectBounds: Range<String.Index>,
     searchBounds: Range<String.Index>
-  ) -> RegexRangesCollection<R.RegexOutput> {
-    RegexRangesCollection(
+  ) -> RegexRangesSequence<R.RegexOutput> {
+    RegexRangesSequence(
       input: self[...].base,
       subjectBounds: subjectBounds,
       searchBounds: searchBounds,
@@ -226,7 +216,7 @@ extension Collection where SubSequence == Substring {
   @_disfavoredOverload
   func _ranges<R: RegexComponent>(
     of regex: R
-  ) -> RegexRangesCollection<R.RegexOutput> {
+  ) -> RegexRangesSequence<R.RegexOutput> {
     _ranges(
       of: regex,
       subjectBounds: startIndex..<endIndex,
