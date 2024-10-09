@@ -56,7 +56,7 @@ extension SplitCollection: Sequence {
       maxSplits: Int,
       omittingEmptySubsequences: Bool
     ) {
-      self.base = ranges.base
+      self.base = ranges.input
       self.index = base.startIndex
       self.ranges = ranges.makeIterator()
       self.maxSplits = maxSplits

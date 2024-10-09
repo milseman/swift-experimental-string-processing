@@ -12,62 +12,32 @@
 // MARK: `RangesCollection`
 
 struct RangesSequence<Searcher: CollectionSearcher> {
-  public typealias Base = Searcher.Searched
-
-  let base: Base
+  let input: Searcher.Searched
   let searcher: Searcher
-  private(set) public var startIndex: Index
 
-  init(base: Base, searcher: Searcher) {
-    self.base = base
+  init(input: Searcher.Searched, searcher: Searcher) {
+    self.input = input
     self.searcher = searcher
-
-    var state = searcher.state(for: base, in: base.startIndex..<base.endIndex)
-    self.startIndex = Index(range: nil, state: state)
-
-    if let range = searcher.search(base, &state) {
-      self.startIndex = Index(range: range, state: state)
-    } else {
-      self.startIndex = endIndex
-    }
   }
 
   struct Iterator: IteratorProtocol {
-    public typealias Base = Searcher.Searched
-
-    let base: Base
-    let searcher: Searcher
+    let base: RangesSequence
     var state: Searcher.State
 
-    init(base: Base, searcher: Searcher) {
+    init(_ base: RangesSequence) {
       self.base = base
-      self.searcher = searcher
-      self.state = searcher.state(for: base, in: base.startIndex..<base.endIndex)
+      self.state = base.searcher.state(for: base.input, in: base.input.startIndex..<base.input.endIndex)
     }
 
-    public mutating func next() -> Range<Base.Index>? {
-      searcher.search(base, &state)
+    public mutating func next() -> Range<Searcher.Searched.Index>? {
+      base.searcher.search(base.input, &state)
     }
   }
 }
 
 extension RangesSequence: Sequence {
   public func makeIterator() -> Iterator {
-    Iterator(base: base, searcher: searcher)
-  }
-}
-
-extension RangesSequence /*: Collection */ {
-  public struct Index {
-    var range: Range<Searcher.Searched.Index>?
-    var state: Searcher.State
-  }
-
-  public var endIndex: Index {
-    // TODO: Avoid calling `state(for:startingAt)` here
-    Index(
-      range: nil,
-      state: searcher.state(for: base, in: base.startIndex..<base.endIndex))
+    Iterator(self)
   }
 }
 
@@ -79,7 +49,7 @@ extension Collection {
   func _ranges<S: CollectionSearcher>(
     of searcher: S
   ) -> RangesSequence<S> where S.Searched == Self {
-    RangesSequence(base: self, searcher: searcher)
+    RangesSequence(input: self, searcher: searcher)
   }
 }
 
