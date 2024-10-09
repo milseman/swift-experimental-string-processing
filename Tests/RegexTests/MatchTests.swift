@@ -2393,6 +2393,17 @@ extension RegexTests {
     XCTAssertTrue(input.contains(regex))
   }
 
+  func testWordBoundaryCaching_2() throws {
+    // This will first find word boundaries up til the middle before failing,
+    // then it will find word boundaries til late in the string, then fail,
+    // and finally should succeed on a word boundary cached from the first
+    // attempt.
+    let input = "first second third fourth"
+    let regex = try Regex(#".*second\bX|.*third\bX|.*first\b"#)
+    print(input.replacing(regex, with: "XYZ"))
+  }
+
+
   // MARK: Character Semantics
   
   var eComposed: String { "é" }
