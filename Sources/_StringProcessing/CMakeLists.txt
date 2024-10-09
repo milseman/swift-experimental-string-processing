@@ -16,10 +16,6 @@ add_library(_StringProcessing
   Algorithms/Matching/MatchReplace.swift
   Algorithms/Matching/MatchResult.swift
   Algorithms/Searchers/CollectionSearcher.swift
-  Algorithms/Searchers/ConsumerSearcher.swift
-  Algorithms/Searchers/NaivePatternSearcher.swift
-  Algorithms/Searchers/PatternOrEmpty.swift
-  Algorithms/Searchers/PredicateSearcher.swift
   Algorithms/Searchers/ZSearcher.swift
   Engine/Backtracking.swift
   Engine/Consume.swift
