@@ -14,12 +14,12 @@
 struct SplitCollection<Searcher: CollectionSearcher> {
   public typealias Base = Searcher.Searched
   
-  let ranges: RangesCollection<Searcher>
+  let ranges: RangesSequence<Searcher>
   var maxSplits: Int
   var omittingEmptySubsequences: Bool
 
   init(
-    ranges: RangesCollection<Searcher>,
+    ranges: RangesSequence<Searcher>,
     maxSplits: Int,
     omittingEmptySubsequences: Bool)
   {
@@ -44,7 +44,7 @@ extension SplitCollection: Sequence {
   public struct Iterator: IteratorProtocol {
     let base: Base
     var index: Base.Index
-    var ranges: RangesCollection<Searcher>.Iterator
+    var ranges: RangesSequence<Searcher>.Iterator
     var maxSplits: Int
     var omittingEmptySubsequences: Bool
 
@@ -52,7 +52,7 @@ extension SplitCollection: Sequence {
     var isDone = false
 
     init(
-      ranges: RangesCollection<Searcher>,
+      ranges: RangesSequence<Searcher>,
       maxSplits: Int,
       omittingEmptySubsequences: Bool
     ) {

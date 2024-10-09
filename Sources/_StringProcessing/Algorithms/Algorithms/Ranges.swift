@@ -11,9 +11,9 @@
 
 // MARK: `RangesCollection`
 
-struct RangesCollection<Searcher: CollectionSearcher> {
+struct RangesSequence<Searcher: CollectionSearcher> {
   public typealias Base = Searcher.Searched
-  
+
   let base: Base
   let searcher: Searcher
   private(set) public var startIndex: Index
@@ -21,7 +21,7 @@ struct RangesCollection<Searcher: CollectionSearcher> {
   init(base: Base, searcher: Searcher) {
     self.base = base
     self.searcher = searcher
-    
+
     var state = searcher.state(for: base, in: base.startIndex..<base.endIndex)
     self.startIndex = Index(range: nil, state: state)
 
@@ -31,35 +31,33 @@ struct RangesCollection<Searcher: CollectionSearcher> {
       self.startIndex = endIndex
     }
   }
+
+  struct Iterator: IteratorProtocol {
+    public typealias Base = Searcher.Searched
+
+    let base: Base
+    let searcher: Searcher
+    var state: Searcher.State
+
+    init(base: Base, searcher: Searcher) {
+      self.base = base
+      self.searcher = searcher
+      self.state = searcher.state(for: base, in: base.startIndex..<base.endIndex)
+    }
+
+    public mutating func next() -> Range<Base.Index>? {
+      searcher.search(base, &state)
+    }
+  }
 }
 
-struct RangesIterator<Searcher: CollectionSearcher>: IteratorProtocol {
-  public typealias Base = Searcher.Searched
-  
-  let base: Base
-  let searcher: Searcher
-  var state: Searcher.State
-
-  init(base: Base, searcher: Searcher) {
-    self.base = base
-    self.searcher = searcher
-    self.state = searcher.state(for: base, in: base.startIndex..<base.endIndex)
-  }
-
-  public mutating func next() -> Range<Base.Index>? {
-    searcher.search(base, &state)
-  }
-}
-
-extension RangesCollection: Sequence {
-  public func makeIterator() -> RangesIterator<Searcher> {
+extension RangesSequence: Sequence {
+  public func makeIterator() -> Iterator {
     Iterator(base: base, searcher: searcher)
   }
 }
 
-extension RangesCollection: Collection {
-  // TODO: Custom `SubSequence` for the sake of more efficient slice iteration
-  
+extension RangesSequence /*: Collection */ {
   public struct Index {
     var range: Range<Searcher.Searched.Index>?
     var state: Searcher.State
@@ -71,48 +69,6 @@ extension RangesCollection: Collection {
       range: nil,
       state: searcher.state(for: base, in: base.startIndex..<base.endIndex))
   }
-
-  public func formIndex(after index: inout Index) {
-    guard index != endIndex else { fatalError("Cannot advance past endIndex") }
-    index.range = searcher.search(base, &index.state)
-  }
-
-  public func index(after index: Index) -> Index {
-    var index = index
-    formIndex(after: &index)
-    return index
-  }
-
-  public subscript(index: Index) -> Range<Base.Index> {
-    guard let range = index.range else {
-      fatalError("Cannot subscript using endIndex")
-    }
-    return range
-  }
-}
-
-extension RangesCollection.Index: Comparable {
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    switch (lhs.range, rhs.range) {
-    case (nil, nil):
-      return true
-    case (nil, _?), (_?, nil):
-      return false
-    case (let lhs?, let rhs?):
-      return lhs.lowerBound == rhs.lowerBound
-    }
-  }
-
-  static func < (lhs: Self, rhs: Self) -> Bool {
-    switch (lhs.range, rhs.range) {
-    case (nil, _):
-      return false
-    case (_, nil):
-      return true
-    case (let lhs?, let rhs?):
-      return lhs.lowerBound < rhs.lowerBound
-    }
-  }
 }
 
 // TODO: `Collection` conformance
@@ -122,8 +78,8 @@ extension RangesCollection.Index: Comparable {
 extension Collection {
   func _ranges<S: CollectionSearcher>(
     of searcher: S
-  ) -> RangesCollection<S> where S.Searched == Self {
-    RangesCollection(base: self, searcher: searcher)
+  ) -> RangesSequence<S> where S.Searched == Self {
+    RangesSequence(base: self, searcher: searcher)
   }
 }
 
@@ -132,7 +88,7 @@ extension Collection {
 extension Collection where Element: Equatable {
   func _ranges<C: Collection>(
     of other: C
-  ) -> RangesCollection<ZSearcher<Self>> where C.Element == Element {
+  ) -> RangesSequence<ZSearcher<Self>> where C.Element == Element {
     _ranges(of: ZSearcher(pattern: Array(other), by: ==))
   }
   
