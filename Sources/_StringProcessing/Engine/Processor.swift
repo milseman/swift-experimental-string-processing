@@ -116,7 +116,7 @@ extension Processor {
 
     self.metrics = ProcessorMetrics(
       isTracingEnabled: program.enableTracing,
-      shouldMeasureMetrics: program.enableTracing)
+      shouldMeasureMetrics: program.enableMetrics)
 
     self.currentPosition = searchBounds.lowerBound
 
