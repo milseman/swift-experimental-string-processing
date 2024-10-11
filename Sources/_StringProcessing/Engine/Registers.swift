@@ -135,9 +135,9 @@ extension Processor.Registers {
   }
 
   mutating func reset(sentinel: Input.Index) {
-//    guard isDirty else {
-//      return
-//    }
+    guard isDirty else {
+      return
+    }
     self.ints._setAll(to: 0)
     self.values._setAll(to: SentinelValue())
     self.positions._setAll(to: Processor.Registers.sentinelIndex)
