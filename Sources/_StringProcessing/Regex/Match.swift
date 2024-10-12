@@ -40,6 +40,9 @@ extension Regex.Match {
     let typeErasedMatch = anyRegexOutput.existentialOutput(
       from: anyRegexOutput.input
     )
+    guard typeErasedMatch is Output else {
+      fatalError()
+    }
     return typeErasedMatch as! Output
   }
 
