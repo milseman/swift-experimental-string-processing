@@ -36,6 +36,10 @@ extension MEProgram {
     var nextValueRegister = ValueRegister(0)
     var nextPositionRegister = PositionRegister(0)
 
+    // Set to non-nil when a value register holds the whole-match
+    // value (i.e. when a regex consists entirely of a custom matcher)
+    var wholeMatchValue: ValueRegister? = nil
+
     // Note: Capture 0 (i.e. whole-match) is handled specially
     // by the engine, so `n` here refers to the regex AST's `n+1`
     // capture
@@ -86,6 +90,11 @@ extension MEProgram.Builder {
   // Map an AST's backreference number to a capture register
   func captureRegister(forBackreference i: Int) -> CaptureRegister {
     .init(i - 1)
+  }
+
+  mutating func denoteCurrentValueIsWholeMatchValue() {
+    assert(wholeMatchValue == nil)
+    wholeMatchValue = nextValueRegister
   }
 }
 
@@ -416,6 +425,7 @@ extension MEProgram.Builder {
     regInfo.transformFunctions = transformFunctions.count
     regInfo.matcherFunctions = matcherFunctions.count
     regInfo.captures = nextCaptureRegister.rawValue
+    regInfo.wholeMatchValue = wholeMatchValue?.rawValue
 
     return MEProgram(
       instructions: InstructionList(instructions),

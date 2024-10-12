@@ -5,7 +5,8 @@ extension Executor {
   static func createExistentialElements(
     _ program: MEProgram,
     matchRange: Range<String.Index>,
-    storedCaptures: [Processor._StoredCapture]
+    storedCaptures: [Processor._StoredCapture],
+    wholeMatchValue: Any?
   ) -> [AnyRegexOutput.ElementRepresentation] {
     let capList = program.captureList
     let capOffsets = program.referencedCaptureOffsets
@@ -17,7 +18,7 @@ extension Executor {
     result.append(
       AnyRegexOutput.ElementRepresentation(
         optionalDepth: 0,
-        content: (matchRange, nil),
+        content: (matchRange, wholeMatchValue),
         visibleInTypedOutput: capList.captures[0].visibleInTypedOutput)
       )
 

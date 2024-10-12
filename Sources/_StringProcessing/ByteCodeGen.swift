@@ -43,9 +43,16 @@ extension Compiler {
 
 extension Compiler.ByteCodeGen {
   mutating func emitRoot(_ root: DSLTree.Node) throws -> MEProgram {
-    // The whole match (`.0` element of output) is equivalent to an implicit
-    // capture over the entire regex.
-//    try emitNode(.capture(name: nil, reference: nil, root))
+    // If the whole regex is a matcher, then the whole-match value
+    // is the constructed value. Denote that the current value
+    // register is the processor's value output.
+    switch root {
+    case .matcher:
+      builder.denoteCurrentValueIsWholeMatchValue()
+    default:
+      break
+    }
+
     try emitNode(root)
 
     builder.canOnlyMatchAtStart = root.canOnlyMatchAtStart()

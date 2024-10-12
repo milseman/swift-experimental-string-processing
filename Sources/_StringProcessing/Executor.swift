@@ -201,10 +201,17 @@ extension Executor {
     }
     let range = startPosition..<endIdx
 
+    let wholeMatchValue: Any?
+    if let val = program.registerInfo.wholeMatchValue {
+      wholeMatchValue = cpu.registers.values[val]
+    } else {
+      wholeMatchValue = nil
+    }
     let aroElements = Executor.createExistentialElements(
       program,
       matchRange: startPosition..<endIdx,
-      storedCaptures: cpu.storedCaptures)
+      storedCaptures: cpu.storedCaptures,
+      wholeMatchValue: wholeMatchValue)
 
 //    let capList = MECaptureList(
 //      values: cpu.storedCaptures,

@@ -245,14 +245,14 @@ class CustomRegexComponentTests: XCTestCase {
       ("55z", .match, nil),
       ("55z", .firstMatch, "55"))
 
-//    customTest(
-//      Regex {
-//        Numbler()
-//      },
-//      ("ab123c", .firstMatch, 1),
-//      ("abc", .firstMatch, nil),
-//      ("55z", .match, nil),
-//      ("55z", .firstMatch, 5))
+    customTest(
+      Regex {
+        Numbler()
+      },
+      ("ab123c", .firstMatch, 1),
+      ("abc", .firstMatch, nil),
+      ("55z", .match, nil),
+      ("55z", .firstMatch, 5))
 
 //    customTest(
 //      Regex<Substring> {
@@ -509,26 +509,58 @@ class CustomRegexComponentTests: XCTestCase {
       }
     }
 
-//    // No capture, one error
-//    customTest(
-//      Regex {
-//        IntParser()
-//      },
-//      ("zzz", nil, IntParser.ParseError()),
-//      ("x10x", nil, IntParser.ParseError()),
-//      ("30", 30, nil)
-//    )
+    // No capture, one error
+    customTest(
+      Regex {
+        IntParser()
+      },
+      ("zzz", nil, IntParser.ParseError()),
+      ("x10x", nil, IntParser.ParseError()),
+      ("30", 30, nil)
+    )
+    customTest(
+      Regex {
+        Optionally {
+          IntParser()
+        }
+      },
+      ("zzz", nil, IntParser.ParseError()),
+      ("x10x", nil, IntParser.ParseError()),
+      ("30", "30", nil)
+    )
+    customTest(
+      Regex {
+        Regex {
+          IntParser()
+        }
+      },
+      ("zzz", nil, IntParser.ParseError()),
+      ("x10x", nil, IntParser.ParseError()),
+      ("30", 30, nil)
+    )
+    customTest(
+      Regex {
+        Regex {
+          IntParser()
+        }
+        "x"
+      },
+      ("zzz", nil, IntParser.ParseError()),
+      ("x10x", nil, IntParser.ParseError()),
+      ("30", nil, nil),
+      ("30x", "30x", nil)
+    )
 
-//    customTest(
-//      Regex {
-//        CurrencyParser()
-//      },
-//      ("USD", .usd, nil),
-//      ("NTD", .ntd, nil),
-//      ("NTD USD", nil, nil),
-//      ("DEM", nil, CurrencyParser.ParseError.deprecated),
-//      ("XXX", nil, CurrencyParser.ParseError.unrecognized)
-//    )
+    customTest(
+      Regex {
+        CurrencyParser()
+      },
+      ("USD", .usd, nil),
+      ("NTD", .ntd, nil),
+      ("NTD USD", nil, nil),
+      ("DEM", nil, CurrencyParser.ParseError.deprecated),
+      ("XXX", nil, CurrencyParser.ParseError.unrecognized)
+    )
 
     // No capture, two errors
     customTest(
