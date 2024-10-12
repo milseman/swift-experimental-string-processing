@@ -151,8 +151,9 @@ fileprivate extension Compiler.ByteCodeGen {
       guard let i = n.value else {
         throw Unreachable("Expected a value")
       }
+      let cap = builder.captureRegister(forBackreference: i)
       builder.buildBackreference(
-        .init(i), isScalarMode: options.semanticLevel == .unicodeScalar)
+        cap, isScalarMode: options.semanticLevel == .unicodeScalar)
     case .named(let name):
       try builder.buildNamedReference(
         name, isScalarMode: options.semanticLevel == .unicodeScalar)

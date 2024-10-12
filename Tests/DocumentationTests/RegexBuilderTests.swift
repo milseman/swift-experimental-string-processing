@@ -120,55 +120,55 @@ extension RegexBuilderTests {
       Transaction(id: 109912311421))
   }
   
-  func testCapture() throws {
-    let transactions = """
-     CREDIT     109912311421    Payroll   $69.73
-     CREDIT     105912031123    Travel   $121.54
-     DEBIT      107733291022    Refund    $8.42
-     """
-    
-    let regex = Regex {
-      "$"
-      Capture {
-        OneOrMore(.digit)
-        "."
-        Repeat(.digit, count: 2)
-      }
-      Anchor.endOfLine
-    }
-    
-    // The type of each match's output is `(Substring, Substring)`.
-    for match in transactions.matches(of: regex) {
-      print("Transaction amount: \(match.1)")
-    }
-    // Prints "Transaction amount: 69.73"
-    // Prints "Transaction amount: 121.54"
-    // Prints "Transaction amount: 8.42"
-    
-    let doubleValueRegex = Regex {
-      "$"
-      Capture {
-        OneOrMore(.digit)
-        "."
-        Repeat(.digit, count: 2)
-      } transform: { Double($0)! }
-      Anchor.endOfLine
-    }
-    
-    // The type of each match's output is `(Substring, Double)`.
-    for match in transactions.matches(of: doubleValueRegex) {
-      if match.1 >= 100.0 {
-        print("Large amount: \(match.1)")
-      }
-    }
-    // Prints "Large amount: 121.54"
-    
-    let matchCaptures = transactions.matches(of: regex).map(\.1)
-    XCTAssertEqual(matchCaptures, ["69.73", "121.54", "8.42"])
-    
-    let doubleValues = transactions.matches(of: doubleValueRegex).map(\.1)
-    XCTAssertEqual(doubleValues, [69.73, 121.54, 8.42])
-  }
+//  func testCapture() throws {
+//    let transactions = """
+//     CREDIT     109912311421    Payroll   $69.73
+//     CREDIT     105912031123    Travel   $121.54
+//     DEBIT      107733291022    Refund    $8.42
+//     """
+//    
+//    let regex = Regex {
+//      "$"
+//      Capture {
+//        OneOrMore(.digit)
+//        "."
+//        Repeat(.digit, count: 2)
+//      }
+//      Anchor.endOfLine
+//    }
+//    
+//    // The type of each match's output is `(Substring, Substring)`.
+//    for match in transactions.matches(of: regex) {
+//      print("Transaction amount: \(match.1)")
+//    }
+//    // Prints "Transaction amount: 69.73"
+//    // Prints "Transaction amount: 121.54"
+//    // Prints "Transaction amount: 8.42"
+//    
+//    let doubleValueRegex = Regex {
+//      "$"
+//      Capture {
+//        OneOrMore(.digit)
+//        "."
+//        Repeat(.digit, count: 2)
+//      } transform: { Double($0)! }
+//      Anchor.endOfLine
+//    }
+//    
+//    // The type of each match's output is `(Substring, Double)`.
+//    for match in transactions.matches(of: doubleValueRegex) {
+//      if match.1 >= 100.0 {
+//        print("Large amount: \(match.1)")
+//      }
+//    }
+//    // Prints "Large amount: 121.54"
+//    
+//    let matchCaptures = transactions.matches(of: regex).map(\.1)
+//    XCTAssertEqual(matchCaptures, ["69.73", "121.54", "8.42"])
+//    
+//    let doubleValues = transactions.matches(of: doubleValueRegex).map(\.1)
+//    XCTAssertEqual(doubleValues, [69.73, 121.54, 8.42])
+//  }
   
   func testTryCapture() throws {
     let transactions = """

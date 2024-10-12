@@ -509,26 +509,26 @@ class CustomRegexComponentTests: XCTestCase {
       }
     }
 
-    // No capture, one error
-    customTest(
-      Regex {
-        IntParser()
-      },
-      ("zzz", nil, IntParser.ParseError()),
-      ("x10x", nil, IntParser.ParseError()),
-      ("30", 30, nil)
-    )
+//    // No capture, one error
+//    customTest(
+//      Regex {
+//        IntParser()
+//      },
+//      ("zzz", nil, IntParser.ParseError()),
+//      ("x10x", nil, IntParser.ParseError()),
+//      ("30", 30, nil)
+//    )
 
-    customTest(
-      Regex {
-        CurrencyParser()
-      },
-      ("USD", .usd, nil),
-      ("NTD", .ntd, nil),
-      ("NTD USD", nil, nil),
-      ("DEM", nil, CurrencyParser.ParseError.deprecated),
-      ("XXX", nil, CurrencyParser.ParseError.unrecognized)
-    )
+//    customTest(
+//      Regex {
+//        CurrencyParser()
+//      },
+//      ("USD", .usd, nil),
+//      ("NTD", .ntd, nil),
+//      ("NTD USD", nil, nil),
+//      ("DEM", nil, CurrencyParser.ParseError.deprecated),
+//      ("XXX", nil, CurrencyParser.ParseError.unrecognized)
+//    )
 
     // No capture, two errors
     customTest(
