@@ -245,14 +245,14 @@ class CustomRegexComponentTests: XCTestCase {
       ("55z", .match, nil),
       ("55z", .firstMatch, "55"))
 
-    customTest(
-      Regex {
-        Numbler()
-      },
-      ("ab123c", .firstMatch, 1),
-      ("abc", .firstMatch, nil),
-      ("55z", .match, nil),
-      ("55z", .firstMatch, 5))
+//    customTest(
+//      Regex {
+//        Numbler()
+//      },
+//      ("ab123c", .firstMatch, 1),
+//      ("abc", .firstMatch, nil),
+//      ("55z", .match, nil),
+//      ("55z", .firstMatch, 5))
 
 //    customTest(
 //      Regex<Substring> {

@@ -199,15 +199,21 @@ extension Executor {
     guard let endIdx = try cpu.run() else {
       return nil
     }
-    let capList = MECaptureList(
-      values: cpu.storedCaptures,
-      referencedCaptureOffsets: program.referencedCaptureOffsets)
-
     let range = startPosition..<endIdx
-    let caps = program.captureList.createElements(capList)
+
+    let aroElements = Executor.createExistentialElements(
+      program,
+      matchRange: startPosition..<endIdx,
+      storedCaptures: cpu.storedCaptures)
+
+//    let capList = MECaptureList(
+//      values: cpu.storedCaptures,
+//      referencedCaptureOffsets: program.referencedCaptureOffsets)
+//
+//    let caps = program.captureList.createElements(capList)
 
     let anyRegexOutput = AnyRegexOutput(
-      input: cpu.input, elements: caps)
+      input: cpu.input, elements: aroElements)
     return .init(anyRegexOutput: anyRegexOutput, range: range)
   }}
 

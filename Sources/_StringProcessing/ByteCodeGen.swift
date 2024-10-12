@@ -45,7 +45,9 @@ extension Compiler.ByteCodeGen {
   mutating func emitRoot(_ root: DSLTree.Node) throws -> MEProgram {
     // The whole match (`.0` element of output) is equivalent to an implicit
     // capture over the entire regex.
-    try emitNode(.capture(name: nil, reference: nil, root))
+//    try emitNode(.capture(name: nil, reference: nil, root))
+    try emitNode(root)
+
     builder.canOnlyMatchAtStart = root.canOnlyMatchAtStart()
     builder.buildAccept()
     return try builder.assemble()
