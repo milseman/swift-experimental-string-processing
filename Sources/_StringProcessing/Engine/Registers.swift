@@ -141,6 +141,7 @@ extension Processor.Registers {
     self.ints._setAll(to: 0)
     self.values._setAll(to: SentinelValue())
     self.positions._setAll(to: Processor.Registers.sentinelIndex)
+    isDirty = false
   }
 }
 
