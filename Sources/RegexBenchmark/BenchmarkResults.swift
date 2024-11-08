@@ -116,12 +116,12 @@ extension BenchmarkRunner {
 
     #if os(macOS) && canImport(Charts)
     if showChart {
-      print("""
-        === Comparison chart =================================================================
-        Press Control-C to close...
-        """)
-      BenchmarkResultApp.comparisons = comparisons
-      BenchmarkResultApp.main()
+//      print("""
+//        === Comparison chart =================================================================
+//        Press Control-C to close...
+//        """)
+//      BenchmarkResultApp.comparisons = comparisons
+//      BenchmarkResultApp.main()
     }
     #endif
   }
