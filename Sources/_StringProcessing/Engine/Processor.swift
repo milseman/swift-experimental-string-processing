@@ -115,8 +115,8 @@ extension Processor {
     self.matchMode = matchMode
 
     self.metrics = ProcessorMetrics(
-      isTracingEnabled: true,//program.enableTracing,
-      shouldMeasureMetrics: true)//program.enableMetrics)
+      isTracingEnabled: program.enableTracing,
+      shouldMeasureMetrics: program.enableMetrics)
 
     self.currentPosition = searchBounds.lowerBound
 
@@ -246,7 +246,7 @@ extension Processor {
   }
 
   func doPrint(_ s: String) {
-    var enablePrinting: Bool { true }
+    var enablePrinting: Bool { false }
     if enablePrinting {
       print(s)
     }

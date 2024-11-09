@@ -14,7 +14,7 @@ import XCTest
 
 //extension String: Error {}
 
-let doPrint = true//false//true
+let doPrint = false//true
 func output<S: ExpressibleByStringInterpolation>(_ s: S) {
   if doPrint { print(s) }
 }
