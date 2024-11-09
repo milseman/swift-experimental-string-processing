@@ -16,8 +16,8 @@ extension MEProgram {
     var instructions: [Instruction] = []
     
     // Tracing
-    var enableTracing = false
-    var enableMetrics = false
+    var enableTracing = true
+    var enableMetrics = true
 
     var elements = TypedSetVector<Input.Element, _ElementRegister>()
     var utf8Contents = TypedSetVector<[UInt8], _UTF8Register>()

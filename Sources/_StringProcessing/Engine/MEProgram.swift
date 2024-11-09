@@ -31,8 +31,8 @@ struct MEProgram {
 
   var registerInfo: RegisterInfo
 
-  var enableTracing: Bool
-  var enableMetrics: Bool
+  var enableTracing: Bool = true
+  var enableMetrics: Bool = true
   
   let captureList: CaptureList
   let referencedCaptureOffsets: [ReferenceID: Int]
