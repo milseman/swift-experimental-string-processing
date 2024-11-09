@@ -19,9 +19,9 @@ extension BenchmarkRunner {
     ).register(&self)
 
     CrossInputListBenchmark(
-      baseName: "FSPathsRegexNotFound",
+      baseName: "FSPathsRegexFound",
       regex: fsPathsRegex,
-      inputs: Inputs.fsPathsNotFoundList
+      inputs: Inputs.fsPathsFoundList
     ).register(&self)
 
   }

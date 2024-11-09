@@ -35,6 +35,15 @@ private func listify(_ s: String) -> [String] {
 private let pathSuccessList: [String] = { listify(pathSuccess) }()
 private let pathFailureList: [String] = { listify(pathFailure) }()
 
+private func scale(_ input: [String]) -> [String] {
+  let threshold = 1_000
+  var result = input
+  while result.count < threshold {
+    result.append(contentsOf: input)
+  }
+  return result
+}
+
 extension Inputs {
   static let fsPathsList: [String] = {
     var result = pathFailureList
@@ -47,23 +56,15 @@ extension Inputs {
     }
 
     // Scale result up a bit
-    result.append(contentsOf: result)
-    result.append(contentsOf: result)
-    result.append(contentsOf: result)
-    result.append(contentsOf: result)
-
-    return result
+    return scale(result)
 
   }()
 
   static let fsPathsNotFoundList: [String] = {
-    var result = pathFailureList
-    result.append(contentsOf: pathFailureList)
-    result.append(contentsOf: result)
-    result.append(contentsOf: result)
-    result.append(contentsOf: result)
-    result.append(contentsOf: result)
-    result.append(contentsOf: result)
-    return result
+    scale(pathFailureList)
+  }()
+
+  static let fsPathsFoundList: [String] = {
+    scale(pathFailureList)
   }()
 }
