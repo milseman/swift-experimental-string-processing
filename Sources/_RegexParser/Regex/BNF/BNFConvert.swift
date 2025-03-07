@@ -157,13 +157,20 @@ extension BNFConvert {
 
         return [s]
 
+      case .dot:
+        return [.builtin(.any)]
+
+      case .escaped(let b):
+        let builtin = try mapEscapedBuiltin(b)
+        return [.builtin(builtin)]
+
       case .scalar(_): fatalError()
       case .scalarSequence(_): fatalError()
       case .keyboardControl(_): fatalError()
       case .keyboardMeta(_): fatalError()
       case .keyboardMetaControl(_): fatalError()
 
-      case .property, .escaped, .dot, .caretAnchor, .dollarAnchor,
+      case .property, .escaped, .caretAnchor, .dollarAnchor,
           .backreference, .subpattern, .namedCharacter, .callout,
           .backtrackingDirective, .changeMatchingOptions, .invalid:
         fatalError()
@@ -192,6 +199,40 @@ extension BNFConvert {
 }
 
 extension BNFConvert {
+  func mapEscapedBuiltin(_ b: AST.Atom.EscapedBuiltin) throws -> Builtin {
+    switch b {
+
+      // Scalar escapes
+    case .alarm, .escape, .formfeed, .newline, .carriageReturn, .tab, .backspace:
+      fatalError()
+
+      // Built-in character classes
+    case .whitespace: return .whitespace
+    case .notWhitespace: return .notWhitespace
+    case .decimalDigit: return .decimalDigit
+    case .notDecimalDigit: return .notDecimalDigit
+    case .wordCharacter: return .wordCharacter
+    case .notWordCharacter: return .notWordCharacter
+
+      // Other character classes
+    case .horizontalWhitespace, .notHorizontalWhitespace, .notNewline, .newlineSequence, .verticalTab, .notVerticalTab:
+      fatalError()
+
+
+      // Assertions
+    case .wordBoundary, .notWordBoundary:
+      fatalError()
+
+      // Anchors
+    case .startOfSubject, .endOfSubjectBeforeNewline, .endOfSubject, .firstMatchingPositionInSubject:
+      fatalError()
+
+      // Other
+    case .singleDataUnit, .graphemeCluster, .resetStartOfMatch, .trueAnychar, .textSegment, .notTextSegment:
+      fatalError()
+
+    }
+  }
 
   mutating func createQuantify(
     _ child: NonTerminalSymbol,
@@ -232,7 +273,7 @@ extension BNFConvert {
 
     case .zeroOrOne:
       // QUANT ::= QUANT_CHILD | <empty>
-      let name = symbols.genSym("QUANT_+")
+      let name = symbols.genSym("QUANT_?")
       let choices = [
         Choice(child),
         emptyChoice
@@ -413,9 +454,12 @@ extension BNFConvert {
 
       // TODO: This isn't a win when RHS already has uses
       if val.count == 1 {
-        if case .nonTerminal(let rhs) = val.first!.sequence.first! {
-          productions[rootSymbol] = productions[rhs]
-          changed = true
+        let seq = val.first!.sequence
+        if seq.count == 1 {
+          if case .nonTerminal(let rhs) = seq.first! {
+            productions[rootSymbol] = productions[rhs]
+            changed = true
+          }
         }
       }
     }

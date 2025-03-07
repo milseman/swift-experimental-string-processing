@@ -60,14 +60,26 @@ struct Regex2BNF: ParsableCommand {
 
 //      print("Grouping")
       try convert("a(b|c)d")
+      try convert("a(?:b|c)d")
       try convert("a(bcd|def(g|h)+)z")
 
 //      print("Dot")
-//      try convert(".*")
-//      try convert("(a|b)*.{3}(a|b)")
+      try convert(".*")
+      try convert("(a|b)*.{3}(a|b)")
+
+//      print("Bultin character classes")
+      try convert(#"\(\d{3}\)\d{3}-\d{4}"#)
+      try convert(#"\s+keyword\s+"#)
 
 
 //      print("[Done]")
+
+      // Look at optimizer output, the quant child is very long
+      try convert("a(123456789)+b")
+
+      try convert("Hi the time right now is (AM|PM)")
+
+      try convert("a(b|c)*d{2,4}e?")
     }
     try convert(pattern)
 
